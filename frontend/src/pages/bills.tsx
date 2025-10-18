@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -89,7 +89,6 @@ export default function Bills() {
       paymentHistory: [...bill.paymentHistory, paymentRecord],
     };
 
-    // If recurring, create next occurrence
     if (bill.recurrence !== 'one-time') {
       const nextDueDate = getNextRecurringDate(bill.dueDate, bill.recurrence);
       const nextBill: Bill = {
@@ -120,7 +119,7 @@ export default function Bills() {
           <h1 className="text-3xl font-bold text-gray-900">Bills</h1>
           <p className="text-gray-500 mt-1">Track and manage your bills</p>
         </div>
-        <Button onClick={handleAddNew}>
+        <Button onClick={handleAddNew} className="shadow-lg">
           <Plus className="h-4 w-4 mr-2" />
           Add Bill
         </Button>
@@ -152,21 +151,29 @@ export default function Bills() {
 
       {/* Bills Grid */}
       {filteredBills.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">
+        <div className="text-center py-16">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-6">
+            <FileText className="h-12 w-12 text-blue-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
             {searchTerm || statusFilter !== 'all' 
               ? 'No bills match your filters' 
-              : 'No bills yet. Add your first bill to get started!'}
+              : 'No bills yet'}
+          </h3>
+          <p className="text-gray-500 mb-6">
+            {searchTerm || statusFilter !== 'all'
+              ? 'Try adjusting your search or filters'
+              : 'Add your first bill to get started tracking your payments'}
           </p>
           {!searchTerm && statusFilter === 'all' && (
-            <Button onClick={handleAddNew}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={handleAddNew} size="lg" className="shadow-lg">
+              <Plus className="h-5 w-5 mr-2" />
               Add Your First Bill
             </Button>
           )}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredBills.map(bill => (
             <BillCard
               key={bill.id}
