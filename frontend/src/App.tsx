@@ -11,6 +11,8 @@ import Bills from "./pages/bills";
 import Errands from "./pages/errands";
 import Appointments from "./pages/appointments";
 import UrgentHelp from "./pages/urgent-help";
+import Payments from "./pages/payments";
+import Notifications from "./pages/notifications";
 import Profile from "./pages/profile";
 import NotFound from "./pages/NotFound";
 
@@ -34,6 +36,8 @@ const App = () => {
               <Route path="/errands" element={<Errands />} />
               <Route path="/appointments" element={<Appointments />} />
               <Route path="/urgent-help" element={<UrgentHelp />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<Profile />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

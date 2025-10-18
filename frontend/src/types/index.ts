@@ -86,3 +86,46 @@ export interface DashboardStats {
   activeErrands: number;
   upcomingAppointments: number;
 }
+
+// Payment Method Types
+export type PaymentMethodType = 'card' | 'paynow' | 'bank';
+export type CardBrand = 'visa' | 'mastercard' | 'amex' | 'discover' | 'other';
+
+export interface PaymentMethod {
+  id: string;
+  type: PaymentMethodType;
+  isDefault: boolean;
+  nickname: string;
+  createdAt: string;
+  
+  // Card specific fields
+  cardBrand?: CardBrand;
+  cardLast4?: string;
+  cardExpiryMonth?: string;
+  cardExpiryYear?: string;
+  cardHolderName?: string;
+  
+  // PayNow specific fields
+  payNowMobile?: string;
+  
+  // Bank account specific fields
+  bankName?: string;
+  bankAccountLast4?: string;
+  bankAccountHolderName?: string;
+}
+
+// Notification Types
+export type NotificationType = 'bill' | 'appointment' | 'errand' | 'payment' | 'system';
+export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  priority: NotificationPriority;
+  title: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  actionUrl?: string;
+  relatedId?: string; // ID of related bill, appointment, etc.
+}

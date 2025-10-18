@@ -1,4 +1,4 @@
-import { Bill, Errand, Appointment, UserProfile, UrgentAlert } from '@/types';
+import { Bill, Errand, Appointment, UserProfile, UrgentAlert, PaymentMethod, Notification } from '@/types';
 
 const STORAGE_KEYS = {
   BILLS: 'tadaa_bills',
@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   APPOINTMENTS: 'tadaa_appointments',
   USER_PROFILE: 'tadaa_user_profile',
   URGENT_ALERTS: 'tadaa_urgent_alerts',
+  PAYMENT_METHODS: 'tadaa_payment_methods',
+  NOTIFICATIONS: 'tadaa_notifications',
 } as const;
 
 // Generic storage functions
@@ -116,6 +118,76 @@ export const alertStorage = {
     const alerts = alertStorage.getAll();
     alerts.push(alert);
     alertStorage.save(alerts);
+  },
+};
+
+// Payment Methods
+export const paymentStorage = {
+  getAll: (): PaymentMethod[] => getFromStorage(STORAGE_KEYS.PAYMENT_METHODS, []),
+  save: (methods: PaymentMethod[]) => saveToStorage(STORAGE_KEYS.PAYMENT_METHODS, methods),
+  add: (method: PaymentMethod) => {
+    const methods = paymentStorage.getAll();
+    
+    if (method.isDefault) {
+      methods.forEach(m => m.isDefault = false);
+    }
+    
+    methods.push(method);
+    paymentStorage.save(methods);
+  },
+  update: (id: string, updates: Partial<PaymentMethod>) => {
+    const methods = paymentStorage.getAll();
+    const index = methods.findIndex(m => m.id === id);
+    
+    if (index !== -1) {
+      if (updates.isDefault) {
+        methods.forEach(m => m.isDefault = false);
+      }
+      
+      methods[index] = { ...methods[index], ...updates };
+      paymentStorage.save(methods);
+    }
+  },
+  delete: (id: string) => {
+    const methods = paymentStorage.getAll().filter(m => m.id !== id);
+    
+    const hasDefault = methods.some(m => m.isDefault);
+    if (!hasDefault && methods.length > 0) {
+      methods[0].isDefault = true;
+    }
+    
+    paymentStorage.save(methods);
+  },
+  setDefault: (id: string) => {
+    const methods = paymentStorage.getAll();
+    methods.forEach(m => m.isDefault = m.id === id);
+    paymentStorage.save(methods);
+  },
+};
+
+// Notifications
+export const notificationStorage = {
+  getAll: (): Notification[] => getFromStorage(STORAGE_KEYS.NOTIFICATIONS, []),
+  save: (notifications: Notification[]) => saveToStorage(STORAGE_KEYS.NOTIFICATIONS, notifications),
+  markAsRead: (id: string) => {
+    const notifications = notificationStorage.getAll();
+    const notification = notifications.find(n => n.id === id);
+    if (notification) {
+      notification.isRead = true;
+      notificationStorage.save(notifications);
+    }
+  },
+  markAllAsRead: () => {
+    const notifications = notificationStorage.getAll();
+    notifications.forEach(n => n.isRead = true);
+    notificationStorage.save(notifications);
+  },
+  delete: (id: string) => {
+    const notifications = notificationStorage.getAll().filter(n => n.id !== id);
+    notificationStorage.save(notifications);
+  },
+  clearAll: () => {
+    notificationStorage.save([]);
   },
 };
 
