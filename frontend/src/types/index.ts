@@ -1,0 +1,88 @@
+export type BillStatus = 'upcoming' | 'overdue' | 'paid';
+export type BillRecurrence = 'one-time' | 'weekly' | 'monthly' | 'yearly';
+export type BillCategory = 'utilities' | 'rent' | 'insurance' | 'subscription' | 'credit-card' | 'other';
+
+export interface Bill {
+  id: string;
+  name: string;
+  amount: number;
+  dueDate: string;
+  recurrence: BillRecurrence;
+  category: BillCategory;
+  status: BillStatus;
+  reminderDays: number[];
+  paymentHistory: PaymentRecord[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentRecord {
+  id: string;
+  date: string;
+  amount: number;
+}
+
+export type ErrandStatus = 'pending' | 'in-progress' | 'done';
+export type ErrandPriority = 'normal' | 'urgent';
+export type ErrandCategory = 'home-maintenance' | 'cleaning' | 'gardening' | 'groceries' | 'delivery' | 'pharmacy';
+
+export interface Errand {
+  id: string;
+  type: ErrandCategory;
+  description: string;
+  priority: ErrandPriority;
+  status: ErrandStatus;
+  preferredDate: string;
+  adminNotes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AppointmentType = 'personal' | 'family' | 'medical';
+
+export interface Appointment {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  type: AppointmentType;
+  notes: string;
+  recurrence: BillRecurrence;
+  reminderMinutes: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TrustedContact {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+}
+
+export interface UrgentAlert {
+  id: string;
+  message: string;
+  timestamp: string;
+  acknowledged: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  trustedContacts: TrustedContact[];
+  notificationPreferences: {
+    billReminders: boolean;
+    appointmentReminders: boolean;
+    errandUpdates: boolean;
+  };
+}
+
+export interface DashboardStats {
+  upcomingBills: number;
+  overdueBills: number;
+  activeErrands: number;
+  upcomingAppointments: number;
+}
