@@ -7,6 +7,9 @@ import { useEffect } from "react";
 import { MainLayout } from "./components/layout/main-layout";
 import { initializeUserProfile } from "./lib/storage";
 import Dashboard from "./pages/dashboard";
+import Bills from "./pages/bills";
+import UrgentHelp from "./pages/urgent-help";
+import Profile from "./pages/profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +28,9 @@ const App = () => {
           <MainLayout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/bills" element={<Bills />} />
+              <Route path="/urgent-help" element={<UrgentHelp />} />
+              <Route path="/profile" element={<Profile />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
