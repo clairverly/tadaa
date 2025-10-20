@@ -14,6 +14,7 @@ export interface Bill {
   reminderEnabled: boolean;
   paymentHistory: PaymentRecord[];
   autoPayEnabled: boolean;
+  autoPayLimit?: number;
   paymentMethodId?: string;
   retryCount: number;
   lastPaymentAttempt?: string;

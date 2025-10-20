@@ -50,6 +50,12 @@ export async function attemptAutomaticPayment(billId: string): Promise<void> {
     return;
   }
 
+  // Check auto-pay limit
+  if (bill.autoPayLimit && bill.amount > bill.autoPayLimit) {
+    createLimitExceededNotification(bill);
+    return;
+  }
+
   const paymentMethods = paymentStorage.getAll();
   const paymentMethod = paymentMethods.find(pm => pm.id === bill.paymentMethodId);
   
@@ -85,6 +91,24 @@ export async function attemptAutomaticPayment(billId: string): Promise<void> {
   }
 
   billStorage.update(billId, updates);
+}
+
+function createLimitExceededNotification(bill: Bill): void {
+  const notification: Notification = {
+    id: `notif-limit-exceeded-${Date.now()}`,
+    type: 'payment-failure',
+    priority: 'high',
+    title: 'Auto-Pay Limit Exceeded',
+    message: `${bill.name} bill amount ($${bill.amount.toFixed(2)}) exceeds your auto-pay limit of $${bill.autoPayLimit!.toFixed(2)}. Please review and pay manually.`,
+    timestamp: new Date().toISOString(),
+    isRead: false,
+    actionUrl: '/bills',
+    relatedId: bill.id,
+    customizable: true,
+  };
+  
+  const notifications = notificationStorage.getAll();
+  notificationStorage.save([notification, ...notifications]);
 }
 
 function createPaymentSuccessNotification(bill: Bill): void {

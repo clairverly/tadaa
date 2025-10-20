@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bill, BillCategory } from '@/types';
 import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess, showError } from '@/utils/toast';
-import { CreditCard, Info, Scan, Mail, Sparkles } from 'lucide-react';
+import { CreditCard, Info, Scan, Mail, Sparkles, Shield } from 'lucide-react';
 import { paymentStorage } from '@/lib/storage';
 
 interface BillFormDialogProps {
@@ -26,6 +26,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
     name: '',
     category: 'utilities' as BillCategory,
     autoPayEnabled: false,
+    autoPayLimit: '',
     paymentMethodId: '',
   });
 
@@ -38,6 +39,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
         name: scannedData.name,
         category: scannedData.category,
         autoPayEnabled: false,
+        autoPayLimit: '',
         paymentMethodId: '',
       });
     } else if (bill) {
@@ -45,6 +47,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
         name: bill.name,
         category: bill.category,
         autoPayEnabled: bill.autoPayEnabled || false,
+        autoPayLimit: bill.autoPayLimit ? bill.autoPayLimit.toString() : '',
         paymentMethodId: bill.paymentMethodId || '',
       });
     } else {
@@ -53,6 +56,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
         name: '',
         category: defaultCategory || 'utilities',
         autoPayEnabled: false,
+        autoPayLimit: '',
         paymentMethodId: '',
       });
     }
@@ -71,6 +75,14 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       return;
     }
 
+    if (formData.autoPayEnabled && formData.autoPayLimit) {
+      const limit = parseFloat(formData.autoPayLimit);
+      if (isNaN(limit) || limit <= 0) {
+        showError('Please enter a valid auto-pay limit');
+        return;
+      }
+    }
+
     // For new bills, create with placeholder values that will be updated via email
     const newBill: Bill = {
       id: bill?.id || `bill-${Date.now()}`,
@@ -83,6 +95,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       reminderDays: bill?.reminderDays || [7, 3, 1], // Default reminders
       reminderEnabled: bill?.reminderEnabled ?? true, // Auto-enabled
       autoPayEnabled: formData.autoPayEnabled,
+      autoPayLimit: formData.autoPayEnabled && formData.autoPayLimit ? parseFloat(formData.autoPayLimit) : undefined,
       paymentMethodId: formData.autoPayEnabled ? formData.paymentMethodId : undefined,
       retryCount: bill?.retryCount || 0,
       paymentHistory: bill?.paymentHistory || [],
@@ -97,7 +110,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{bill ? 'Edit Bill' : scannedData ? 'Review Scanned Bill' : 'Add New Bill'}</DialogTitle>
           <DialogDescription>
@@ -210,6 +223,31 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                         </SelectContent>
                       </Select>
                     )}
+                  </div>
+
+                  {/* Auto-Pay Limit */}
+                  <div className="grid gap-2">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-purple-600" />
+                      <Label htmlFor="autoPayLimit">Auto-Pay Limit (Recommended)</Label>
+                    </div>
+                    <Input
+                      id="autoPayLimit"
+                      type="number"
+                      step="0.01"
+                      value={formData.autoPayLimit}
+                      onChange={(e) => setFormData({ ...formData, autoPayLimit: e.target.value })}
+                      placeholder="e.g., 150.00"
+                    />
+                    <p className="text-xs text-gray-600">
+                      Maximum amount to auto-pay. Bills exceeding this limit will require manual approval.
+                    </p>
+                    <Alert className="bg-purple-50 border-purple-200">
+                      <Shield className="h-4 w-4 text-purple-600" />
+                      <AlertDescription className="text-purple-800 text-xs">
+                        <strong>Example:</strong> If your electric bill is usually $120, set limit to $150. If a bill arrives for $200, you'll be notified to review before payment.
+                      </AlertDescription>
+                    </Alert>
                   </div>
                 </div>
               )}

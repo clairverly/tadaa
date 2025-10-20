@@ -69,6 +69,9 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
   // Calculate outstanding amount
   const outstandingAmount = overdue && bill.status !== 'paid' ? bill.amount : 0;
 
+  // Check if bill exceeds auto-pay limit
+  const exceedsLimit = bill.autoPayEnabled && bill.autoPayLimit && bill.amount > bill.autoPayLimit;
+
   return (
     <Card className={cn(
       'transition-all hover:shadow-md border-2',
@@ -99,6 +102,12 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
                     <Badge variant="outline" className="text-xs flex items-center gap-1 text-gray-400">
                       <BellOff className="h-3 w-3" />
                       No Reminders
+                    </Badge>
+                  )}
+                  {bill.autoPayEnabled && (
+                    <Badge variant="outline" className="text-xs flex items-center gap-1 text-green-700 bg-green-50 border-green-200">
+                      <CreditCard className="h-3 w-3" />
+                      Auto-Pay
                     </Badge>
                   )}
                 </div>
@@ -142,6 +151,30 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
               <span className="text-sm text-gray-600">Due Date</span>
               <span className="font-medium text-gray-900">{formatDate(bill.dueDate)}</span>
             </div>
+
+            {/* Auto-Pay Limit Warning */}
+            {exceedsLimit && (
+              <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border-2 border-amber-300">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-900">Exceeds Auto-Pay Limit</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Bill amount (${bill.amount.toFixed(2)}) exceeds your limit of ${bill.autoPayLimit!.toFixed(2)}. Manual approval required.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Auto-Pay Limit Info */}
+            {bill.autoPayEnabled && bill.autoPayLimit && !exceedsLimit && (
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-900">Auto-Pay Limit</span>
+                </div>
+                <span className="text-sm font-semibold text-green-700">${bill.autoPayLimit.toFixed(2)}</span>
+              </div>
+            )}
 
             {/* Outstanding Amount */}
             {outstandingAmount > 0 && (
