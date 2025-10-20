@@ -11,7 +11,6 @@ import { billStorage } from '@/lib/storage';
 import { Bill, BillStatus, BillCategory } from '@/types';
 import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess } from '@/utils/toast';
-import { getNextRecurringDate } from '@/lib/utils/date';
 
 const billCategories = [
   { id: 'utilities', name: 'Utilities', icon: Zap, gradient: 'from-yellow-400 to-orange-500' },
@@ -95,37 +94,6 @@ export default function Bills() {
       loadBills();
       setDeletingBill(null);
     }
-  };
-
-  const handleMarkPaid = (bill: Bill) => {
-    const paymentRecord = {
-      id: `payment-${Date.now()}`,
-      date: new Date().toISOString(),
-      amount: bill.amount,
-      status: 'success' as const,
-    };
-
-    const updates: Partial<Bill> = {
-      status: 'paid',
-      paymentHistory: [...bill.paymentHistory, paymentRecord],
-    };
-
-    if (bill.recurrence !== 'one-time') {
-      const nextDueDate = getNextRecurringDate(bill.dueDate, bill.recurrence);
-      const nextBill: Bill = {
-        ...bill,
-        id: `bill-${Date.now()}`,
-        dueDate: nextDueDate,
-        status: 'upcoming',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      billStorage.add(nextBill);
-    }
-
-    billStorage.update(bill.id, updates);
-    showSuccess('Bill marked as paid');
-    loadBills();
   };
 
   const handleAddNew = () => {
@@ -334,7 +302,6 @@ export default function Bills() {
               bill={bill}
               onEdit={handleEditBill}
               onDelete={handleDeleteBill}
-              onMarkPaid={handleMarkPaid}
             />
           ))}
         </div>
