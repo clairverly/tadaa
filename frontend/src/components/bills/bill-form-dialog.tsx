@@ -6,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bill, BillCategory, BillRecurrence } from '@/types';
 import { showSuccess, showError } from '@/utils/toast';
-import { Bell } from 'lucide-react';
+import { Bell, CreditCard, Info } from 'lucide-react';
+import { paymentStorage } from '@/lib/storage';
 
 interface BillFormDialogProps {
   open: boolean;
@@ -26,7 +28,11 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
     recurrence: 'monthly' as BillRecurrence,
     reminderEnabled: true,
     reminderDays: [7, 3, 1],
+    autoPayEnabled: false,
+    paymentMethodId: '',
   });
+
+  const paymentMethods = paymentStorage.getAll();
 
   useEffect(() => {
     if (bill) {
@@ -38,6 +44,8 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
         recurrence: bill.recurrence,
         reminderEnabled: bill.reminderEnabled ?? true,
         reminderDays: bill.reminderDays || [7, 3, 1],
+        autoPayEnabled: bill.autoPayEnabled || false,
+        paymentMethodId: bill.paymentMethodId || '',
       });
     } else {
       setFormData({
@@ -48,6 +56,8 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
         recurrence: 'monthly',
         reminderEnabled: true,
         reminderDays: [7, 3, 1],
+        autoPayEnabled: false,
+        paymentMethodId: '',
       });
     }
   }, [bill, open]);
@@ -57,6 +67,11 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
 
     if (!formData.name || !formData.amount || !formData.dueDate) {
       showError('Please fill in all required fields');
+      return;
+    }
+
+    if (formData.autoPayEnabled && !formData.paymentMethodId) {
+      showError('Please select a payment method for auto-pay');
       return;
     }
 
@@ -76,6 +91,9 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
       status: 'upcoming',
       reminderDays: formData.reminderEnabled ? formData.reminderDays : [],
       reminderEnabled: formData.reminderEnabled,
+      autoPayEnabled: formData.autoPayEnabled,
+      paymentMethodId: formData.autoPayEnabled ? formData.paymentMethodId : undefined,
+      retryCount: bill?.retryCount || 0,
       paymentHistory: bill?.paymentHistory || [],
       createdAt: bill?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -179,6 +197,55 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
               </Select>
             </div>
 
+            {/* Auto-Pay Settings */}
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-gray-500" />
+                  <Label htmlFor="autoPayEnabled" className="cursor-pointer">Enable Auto-Pay</Label>
+                </div>
+                <Switch
+                  id="autoPayEnabled"
+                  checked={formData.autoPayEnabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, autoPayEnabled: checked })}
+                />
+              </div>
+
+              {formData.autoPayEnabled && (
+                <div className="space-y-3 pl-6">
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800 text-sm">
+                      Auto-pay will attempt payment 3 times if it fails. You'll be notified of any issues.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="paymentMethod">Payment Method *</Label>
+                    {paymentMethods.length === 0 ? (
+                      <p className="text-sm text-amber-600">No payment methods available. Add one in the Payments section.</p>
+                    ) : (
+                      <Select
+                        value={formData.paymentMethodId}
+                        onValueChange={(value) => setFormData({ ...formData, paymentMethodId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select payment method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {paymentMethods.map(pm => (
+                            <SelectItem key={pm.id} value={pm.id}>
+                              {pm.nickname || `${pm.type} - ${pm.cardLast4 || pm.payNowMobile || pm.bankAccountLast4}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Reminder Settings */}
             <div className="border-t pt-4 space-y-4">
               <div className="flex items-center justify-between">
@@ -213,9 +280,6 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
                       </div>
                     ))}
                   </div>
-                  {formData.reminderDays.length === 0 && (
-                    <p className="text-xs text-amber-600">Select at least one reminder time</p>
-                  )}
                 </div>
               )}
             </div>

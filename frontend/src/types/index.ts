@@ -1,4 +1,4 @@
-export type BillStatus = 'upcoming' | 'overdue' | 'paid';
+export type BillStatus = 'upcoming' | 'overdue' | 'paid' | 'payment-failed';
 export type BillRecurrence = 'one-time' | 'weekly' | 'monthly' | 'yearly';
 export type BillCategory = 'utilities' | 'rent' | 'insurance' | 'subscription' | 'credit-card' | 'other';
 
@@ -13,6 +13,10 @@ export interface Bill {
   reminderDays: number[];
   reminderEnabled: boolean;
   paymentHistory: PaymentRecord[];
+  autoPayEnabled: boolean;
+  paymentMethodId?: string;
+  retryCount: number;
+  lastPaymentAttempt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,11 +25,24 @@ export interface PaymentRecord {
   id: string;
   date: string;
   amount: number;
+  status: 'success' | 'failed' | 'pending';
+  paymentMethodId?: string;
+  failureReason?: string;
 }
 
 export type ErrandStatus = 'pending' | 'in-progress' | 'done';
 export type ErrandPriority = 'normal' | 'urgent';
 export type ErrandCategory = 'home-maintenance' | 'cleaning' | 'gardening' | 'groceries' | 'delivery' | 'pharmacy';
+
+export interface GroceryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  category: string;
+  estimatedPrice: number;
+  purchased: boolean;
+}
 
 export interface Errand {
   id: string;
@@ -35,8 +52,19 @@ export interface Errand {
   status: ErrandStatus;
   preferredDate: string;
   adminNotes: string;
+  groceryList?: GroceryItem[];
+  scannedImageUrl?: string;
+  totalEstimatedCost?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PurchaseTrend {
+  itemName: string;
+  frequency: number; // times per month
+  lastPurchased: string;
+  averageQuantity: number;
+  category: string;
 }
 
 export type AppointmentType = 'personal' | 'family' | 'medical';
@@ -79,7 +107,9 @@ export interface UserProfile {
     billReminders: boolean;
     appointmentReminders: boolean;
     errandUpdates: boolean;
+    paymentFailures: boolean;
   };
+  purchaseHistory: PurchaseTrend[];
 }
 
 export interface DashboardStats {
@@ -117,7 +147,7 @@ export interface PaymentMethod {
 }
 
 // Notification Types
-export type NotificationType = 'bill' | 'appointment' | 'errand' | 'payment' | 'system';
+export type NotificationType = 'bill' | 'appointment' | 'errand' | 'payment' | 'payment-failure' | 'system';
 export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Notification {
@@ -129,5 +159,18 @@ export interface Notification {
   timestamp: string;
   isRead: boolean;
   actionUrl?: string;
-  relatedId?: string; // ID of related bill, appointment, etc.
+  relatedId?: string;
+  customizable?: boolean;
+}
+
+// Grocery Subscription Types
+export interface GrocerySubscription {
+  id: string;
+  name: string;
+  items: GroceryItem[];
+  frequency: 'weekly' | 'biweekly' | 'monthly';
+  nextDelivery: string;
+  active: boolean;
+  paymentMethodId: string;
+  createdAt: string;
 }

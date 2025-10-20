@@ -1,4 +1,4 @@
-import { Home, FileText, ShoppingBag, Calendar, AlertCircle, CreditCard, Bell, User } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Calendar, AlertCircle, CreditCard, Bell, User, Package } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ const navigation = [
   { name: 'Appointments', href: '/appointments', icon: Calendar },
   { name: 'Urgent Help', href: '/urgent-help', icon: AlertCircle },
   { name: 'Payments', href: '/payments', icon: CreditCard },
+  { name: 'Subscriptions', href: '/subscriptions', icon: Package, badge: 'Soon' },
   { name: 'Notifications', href: '/notifications', icon: Bell, showBadge: true },
   { name: 'Profile', href: '/profile', icon: User },
 ];
@@ -68,6 +69,11 @@ export function Sidebar() {
               {item.showBadge && unreadCount > 0 && (
                 <span className="absolute right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                   {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+              {item.badge && (
+                <span className="absolute right-2 bg-purple-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {item.badge}
                 </span>
               )}
             </Link>

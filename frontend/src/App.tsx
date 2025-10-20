@@ -14,6 +14,7 @@ import UrgentHelp from "./pages/urgent-help";
 import Payments from "./pages/payments";
 import Notifications from "./pages/notifications";
 import Profile from "./pages/profile";
+import Subscriptions from "./pages/subscriptions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => {
               <Route path="/payments" element={<Payments />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/subscriptions" element={<Subscriptions />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
