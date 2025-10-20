@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { BillFormDialog } from '@/components/bills/bill-form-dialog';
 import { BillScannerDialog } from '@/components/bills/bill-scanner-dialog';
+import { EmailIntegrationDialog } from '@/components/bills/email-integration-dialog';
 import { BillCard } from '@/components/bills/bill-card';
 import { billStorage } from '@/lib/storage';
 import { Bill, BillStatus, BillCategory } from '@/types';
@@ -71,6 +72,7 @@ export default function Bills() {
   const [selectedCategory, setSelectedCategory] = useState<BillCategory | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isEmailIntegrationOpen, setIsEmailIntegrationOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [scannedBillData, setScannedBillData] = useState<ScannedBillData | null>(null);
   const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
@@ -173,9 +175,19 @@ export default function Bills() {
     return (
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Pay Bills</h1>
-          <p className="text-gray-500">Select a category to manage your bills</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Pay Bills</h1>
+            <p className="text-gray-500">Select a category to manage your bills</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setIsEmailIntegrationOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Mail className="h-4 w-4" />
+            Email Integration
+          </Button>
         </div>
 
         {/* Quick Actions */}
@@ -229,6 +241,12 @@ export default function Bills() {
           open={isScannerOpen}
           onOpenChange={setIsScannerOpen}
           onBillScanned={handleBillScanned}
+        />
+
+        {/* Email Integration Dialog */}
+        <EmailIntegrationDialog
+          open={isEmailIntegrationOpen}
+          onOpenChange={setIsEmailIntegrationOpen}
         />
 
         {/* Form Dialog */}
@@ -357,7 +375,13 @@ export default function Bills() {
         onBillScanned={handleBillScanned}
       />
 
-      {/* Form Dialog - Pass selected category as default */}
+      {/* Email Integration Dialog */}
+      <EmailIntegrationDialog
+        open={isEmailIntegrationOpen}
+        onOpenChange={setIsEmailIntegrationOpen}
+      />
+
+      {/* Form Dialog */}
       <BillFormDialog
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
