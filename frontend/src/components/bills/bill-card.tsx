@@ -93,22 +93,31 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
                 <h3 className="font-bold text-lg mb-1 text-gray-900">{bill.name}</h3>
                 <div className="flex items-center gap-2 flex-wrap">
                   {getStatusBadge()}
-                  {bill.reminderEnabled ? (
-                    <Badge variant="outline" className="text-xs flex items-center gap-1">
-                      <Bell className="h-3 w-3" />
-                      Reminders
-                    </Badge>
+                  {bill.autoPayEnabled ? (
+                    <>
+                      <Badge variant="outline" className="text-xs flex items-center gap-1 text-green-700 bg-green-50 border-green-200">
+                        <CreditCard className="h-3 w-3" />
+                        Auto-Pay
+                      </Badge>
+                      <Badge variant="outline" className="text-xs flex items-center gap-1 text-gray-500 bg-gray-50">
+                        <BellOff className="h-3 w-3" />
+                        No Reminders
+                      </Badge>
+                    </>
                   ) : (
-                    <Badge variant="outline" className="text-xs flex items-center gap-1 text-gray-400">
-                      <BellOff className="h-3 w-3" />
-                      No Reminders
-                    </Badge>
-                  )}
-                  {bill.autoPayEnabled && (
-                    <Badge variant="outline" className="text-xs flex items-center gap-1 text-green-700 bg-green-50 border-green-200">
-                      <CreditCard className="h-3 w-3" />
-                      Auto-Pay
-                    </Badge>
+                    <>
+                      {bill.reminderEnabled ? (
+                        <Badge variant="outline" className="text-xs flex items-center gap-1">
+                          <Bell className="h-3 w-3" />
+                          Reminders
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs flex items-center gap-1 text-gray-400">
+                          <BellOff className="h-3 w-3" />
+                          No Reminders
+                        </Badge>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -121,7 +130,7 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {bill.reminderEnabled && (
+                {bill.reminderEnabled && !bill.autoPayEnabled && (
                   <DropdownMenuItem onClick={handleSendReminder}>
                     <Bell className="h-4 w-4 mr-2" />
                     Send Reminder Now
@@ -192,18 +201,30 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-900">Upcoming Payment</span>
+                  <span className="text-sm font-medium text-blue-900">
+                    {bill.autoPayEnabled ? 'Auto-Pay Scheduled' : 'Upcoming Payment'}
+                  </span>
                 </div>
                 <span className="font-bold text-blue-600">${bill.amount.toFixed(2)}</span>
               </div>
             )}
             
-            {/* Reminder Settings */}
-            {bill.reminderEnabled && bill.reminderDays.length > 0 && (
+            {/* Reminder Settings - Only show if auto-pay is disabled */}
+            {!bill.autoPayEnabled && bill.reminderEnabled && bill.reminderDays.length > 0 && (
               <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
                 <p className="text-xs text-blue-900 font-medium mb-1">Reminders set for:</p>
                 <p className="text-xs text-blue-700">
                   {bill.reminderDays.sort((a, b) => b - a).map(d => `${d} day${d > 1 ? 's' : ''}`).join(', ')} before due date
+                </p>
+              </div>
+            )}
+
+            {/* Auto-Pay Info - Show when auto-pay is enabled */}
+            {bill.autoPayEnabled && (
+              <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                <p className="text-xs text-green-900 font-medium mb-1">Auto-Pay Active:</p>
+                <p className="text-xs text-green-700">
+                  Payment will be processed automatically when bill arrives. Reminders are disabled.
                 </p>
               </div>
             )}

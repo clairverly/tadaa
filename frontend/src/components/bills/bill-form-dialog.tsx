@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bill, BillCategory } from '@/types';
 import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess, showError } from '@/utils/toast';
-import { CreditCard, Info, Scan, Mail, Sparkles, Shield } from 'lucide-react';
+import { CreditCard, Info, Scan, Mail, Sparkles, Shield, BellOff } from 'lucide-react';
 import { paymentStorage } from '@/lib/storage';
 
 interface BillFormDialogProps {
@@ -93,7 +93,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       recurrence: bill?.recurrence || 'monthly', // Default to monthly
       status: bill?.status || 'upcoming',
       reminderDays: bill?.reminderDays || [7, 3, 1], // Default reminders
-      reminderEnabled: bill?.reminderEnabled ?? true, // Auto-enabled
+      reminderEnabled: formData.autoPayEnabled ? false : (bill?.reminderEnabled ?? true), // Disable reminders if auto-pay enabled
       autoPayEnabled: formData.autoPayEnabled,
       autoPayLimit: formData.autoPayEnabled && formData.autoPayLimit ? parseFloat(formData.autoPayLimit) : undefined,
       paymentMethodId: formData.autoPayEnabled ? formData.paymentMethodId : undefined,
@@ -202,6 +202,14 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                     </AlertDescription>
                   </Alert>
 
+                  {/* Reminders Disabled Notice */}
+                  <Alert className="bg-gray-50 border-gray-200">
+                    <BellOff className="h-4 w-4 text-gray-600" />
+                    <AlertDescription className="text-gray-700 text-sm">
+                      <strong>Reminders Disabled:</strong> Since auto-pay is enabled, payment reminders are automatically turned off. You'll only receive payment confirmation notifications.
+                    </AlertDescription>
+                  </Alert>
+
                   <div className="grid gap-2">
                     <Label htmlFor="paymentMethod">Payment Method *</Label>
                     {paymentMethods.length === 0 ? (
@@ -262,8 +270,8 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                   <ol className="list-decimal list-inside mt-2 space-y-1 text-xs">
                     <li>Save this bill to your account</li>
                     <li>Forward bill emails from this biller to your unique email address</li>
-                    <li>We'll automatically extract amounts, due dates, and set up reminders</li>
-                    <li>Get notified when bills arrive with quick payment options</li>
+                    <li>We'll automatically extract amounts, due dates{!formData.autoPayEnabled && ', and set up reminders'}</li>
+                    <li>{formData.autoPayEnabled ? 'Bills will be paid automatically' : 'Get notified when bills arrive with quick payment options'}</li>
                   </ol>
                 </AlertDescription>
               </Alert>

@@ -1,5 +1,5 @@
 import { Bill, Appointment, Errand, PaymentMethod, Notification, NotificationPriority } from '@/types';
-import { getDaysUntil, isOverdue, isUpcoming } from './utils/date';
+import { getDaysUntil, isAfter, isBefore, addDays, differenceInDays } from './utils/date';
 
 export function generateBillNotifications(bills: Bill[]): Notification[] {
   const notifications: Notification[] = [];
@@ -7,11 +7,14 @@ export function generateBillNotifications(bills: Bill[]): Notification[] {
 
   bills.forEach(bill => {
     if (bill.status === 'paid') return;
+    
+    // Skip reminder notifications if auto-pay is enabled
+    if (bill.autoPayEnabled) return;
 
     const daysUntil = getDaysUntil(bill.dueDate);
     
     // Overdue bills
-    if (isOverdue(bill.dueDate)) {
+    if (daysUntil < 0) {
       notifications.push({
         id: `notif-bill-overdue-${bill.id}`,
         type: 'bill',
