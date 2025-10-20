@@ -3,9 +3,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash2, CheckCircle, Zap, Home, Shield, CreditCard, Wifi, DollarSign } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, CheckCircle, Zap, Home, Shield, CreditCard, Wifi, DollarSign, Bell, BellOff } from 'lucide-react';
 import { formatDate, getDaysUntil, isOverdue } from '@/lib/utils/date';
 import { cn } from '@/lib/utils';
+import { showSuccess } from '@/utils/toast';
 
 interface BillCardProps {
   bill: Bill;
@@ -39,6 +40,10 @@ export function BillCard({ bill, onEdit, onDelete, onMarkPaid }: BillCardProps) 
   
   const CategoryIcon = categoryIcons[bill.category] || DollarSign;
   const gradientColor = categoryColors[bill.category] || categoryColors.other;
+
+  const handleSendReminder = () => {
+    showSuccess(`Reminder sent for ${bill.name}`);
+  };
 
   const getStatusBadge = () => {
     if (isPaid) {
@@ -74,7 +79,20 @@ export function BillCard({ bill, onEdit, onDelete, onMarkPaid }: BillCardProps) 
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-lg mb-1">{bill.name}</h3>
-                {getStatusBadge()}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getStatusBadge()}
+                  {bill.reminderEnabled ? (
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      <Bell className="h-3 w-3" />
+                      Reminders On
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs flex items-center gap-1 text-gray-400">
+                      <BellOff className="h-3 w-3" />
+                      No Reminders
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -85,6 +103,12 @@ export function BillCard({ bill, onEdit, onDelete, onMarkPaid }: BillCardProps) 
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {!isPaid && bill.reminderEnabled && (
+                  <DropdownMenuItem onClick={handleSendReminder}>
+                    <Bell className="h-4 w-4 mr-2" />
+                    Send Reminder Now
+                  </DropdownMenuItem>
+                )}
                 {!isPaid && (
                   <DropdownMenuItem onClick={() => onMarkPaid(bill)}>
                     <CheckCircle className="h-4 w-4 mr-2" />
@@ -113,6 +137,15 @@ export function BillCard({ bill, onEdit, onDelete, onMarkPaid }: BillCardProps) 
               <span className="text-sm text-gray-600">Due Date</span>
               <span className="font-medium text-gray-900">{formatDate(bill.dueDate)}</span>
             </div>
+            
+            {bill.reminderEnabled && bill.reminderDays.length > 0 && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-900 font-medium mb-1">Reminders set for:</p>
+                <p className="text-xs text-blue-700">
+                  {bill.reminderDays.sort((a, b) => b - a).map(d => `${d} day${d > 1 ? 's' : ''}`).join(', ')} before due date
+                </p>
+              </div>
+            )}
             
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500 capitalize">{bill.category.replace('-', ' ')}</span>

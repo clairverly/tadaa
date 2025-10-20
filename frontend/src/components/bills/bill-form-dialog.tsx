@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Bill, BillCategory, BillRecurrence } from '@/types';
 import { showSuccess, showError } from '@/utils/toast';
+import { Bell } from 'lucide-react';
 
 interface BillFormDialogProps {
   open: boolean;
@@ -21,6 +24,8 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
     dueDate: '',
     category: 'utilities' as BillCategory,
     recurrence: 'monthly' as BillRecurrence,
+    reminderEnabled: true,
+    reminderDays: [7, 3, 1],
   });
 
   useEffect(() => {
@@ -31,6 +36,8 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
         dueDate: bill.dueDate.split('T')[0],
         category: bill.category,
         recurrence: bill.recurrence,
+        reminderEnabled: bill.reminderEnabled ?? true,
+        reminderDays: bill.reminderDays || [7, 3, 1],
       });
     } else {
       setFormData({
@@ -39,6 +46,8 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
         dueDate: '',
         category: 'utilities',
         recurrence: 'monthly',
+        reminderEnabled: true,
+        reminderDays: [7, 3, 1],
       });
     }
   }, [bill, open]);
@@ -65,7 +74,8 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
       category: formData.category,
       recurrence: formData.recurrence,
       status: 'upcoming',
-      reminderDays: [7, 3, 1],
+      reminderDays: formData.reminderEnabled ? formData.reminderDays : [],
+      reminderEnabled: formData.reminderEnabled,
       paymentHistory: bill?.paymentHistory || [],
       createdAt: bill?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -76,9 +86,21 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
     onOpenChange(false);
   };
 
+  const toggleReminderDay = (day: number) => {
+    const days = [...formData.reminderDays];
+    const index = days.indexOf(day);
+    if (index > -1) {
+      days.splice(index, 1);
+    } else {
+      days.push(day);
+      days.sort((a, b) => b - a);
+    }
+    setFormData({ ...formData, reminderDays: days });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{bill ? 'Edit Bill' : 'Add New Bill'}</DialogTitle>
           <DialogDescription>
@@ -155,6 +177,47 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
                   <SelectItem value="yearly">Yearly</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Reminder Settings */}
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-gray-500" />
+                  <Label htmlFor="reminderEnabled" className="cursor-pointer">Enable Reminders</Label>
+                </div>
+                <Switch
+                  id="reminderEnabled"
+                  checked={formData.reminderEnabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, reminderEnabled: checked })}
+                />
+              </div>
+
+              {formData.reminderEnabled && (
+                <div className="space-y-3 pl-6">
+                  <Label className="text-sm text-gray-600">Remind me before due date:</Label>
+                  <div className="space-y-2">
+                    {[14, 7, 3, 1].map(day => (
+                      <div key={day} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`reminder-${day}`}
+                          checked={formData.reminderDays.includes(day)}
+                          onCheckedChange={() => toggleReminderDay(day)}
+                        />
+                        <label
+                          htmlFor={`reminder-${day}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {day === 1 ? '1 day before' : `${day} days before`}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {formData.reminderDays.length === 0 && (
+                    <p className="text-xs text-amber-600">Select at least one reminder time</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

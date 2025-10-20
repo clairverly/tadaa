@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Appointment, AppointmentType, BillRecurrence } from '@/types';
 import { showSuccess, showError } from '@/utils/toast';
+import { Bell } from 'lucide-react';
 
 interface AppointmentFormDialogProps {
   open: boolean;
@@ -25,6 +27,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
     notes: '',
     recurrence: 'one-time' as BillRecurrence,
     reminderMinutes: '30',
+    reminderEnabled: true,
   });
 
   useEffect(() => {
@@ -38,6 +41,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
         notes: appointment.notes,
         recurrence: appointment.recurrence,
         reminderMinutes: appointment.reminderMinutes.toString(),
+        reminderEnabled: appointment.reminderEnabled ?? true,
       });
     } else {
       setFormData({
@@ -49,6 +53,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
         notes: '',
         recurrence: 'one-time',
         reminderMinutes: '30',
+        reminderEnabled: true,
       });
     }
   }, [appointment, open]);
@@ -70,7 +75,8 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
       type: formData.type,
       notes: formData.notes,
       recurrence: formData.recurrence,
-      reminderMinutes: parseInt(formData.reminderMinutes),
+      reminderMinutes: formData.reminderEnabled ? parseInt(formData.reminderMinutes) : 0,
+      reminderEnabled: formData.reminderEnabled,
       createdAt: appointment?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -82,7 +88,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{appointment ? 'Edit Appointment' : 'Schedule Appointment'}</DialogTitle>
           <DialogDescription>
@@ -168,22 +174,41 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
               </Select>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="reminderMinutes">Reminder</Label>
-              <Select
-                value={formData.reminderMinutes}
-                onValueChange={(value) => setFormData({ ...formData, reminderMinutes: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 minutes before</SelectItem>
-                  <SelectItem value="30">30 minutes before</SelectItem>
-                  <SelectItem value="60">1 hour before</SelectItem>
-                  <SelectItem value="1440">1 day before</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Reminder Settings */}
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-gray-500" />
+                  <Label htmlFor="reminderEnabled" className="cursor-pointer">Enable Reminder</Label>
+                </div>
+                <Switch
+                  id="reminderEnabled"
+                  checked={formData.reminderEnabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, reminderEnabled: checked })}
+                />
+              </div>
+
+              {formData.reminderEnabled && (
+                <div className="grid gap-2 pl-6">
+                  <Label htmlFor="reminderMinutes">Remind me before appointment:</Label>
+                  <Select
+                    value={formData.reminderMinutes}
+                    onValueChange={(value) => setFormData({ ...formData, reminderMinutes: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15">15 minutes before</SelectItem>
+                      <SelectItem value="30">30 minutes before</SelectItem>
+                      <SelectItem value="60">1 hour before</SelectItem>
+                      <SelectItem value="120">2 hours before</SelectItem>
+                      <SelectItem value="1440">1 day before</SelectItem>
+                      <SelectItem value="2880">2 days before</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className="grid gap-2">

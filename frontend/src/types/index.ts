@@ -11,6 +11,7 @@ export interface Bill {
   category: BillCategory;
   status: BillStatus;
   reminderDays: number[];
+  reminderEnabled: boolean;
   paymentHistory: PaymentRecord[];
   createdAt: string;
   updatedAt: string;
@@ -50,6 +51,7 @@ export interface Appointment {
   notes: string;
   recurrence: BillRecurrence;
   reminderMinutes: number;
+  reminderEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
