@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, FileText, Scan } from 'lucide-react';
+import { Plus, Search, FileText, Scan, ArrowLeft, Zap, Home, Shield, CreditCard, Wifi, DollarSign, Mail, HandCoins, Umbrella, ParkingCircle, Building2, Syringe, Warehouse, IdCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,16 +8,26 @@ import { BillFormDialog } from '@/components/bills/bill-form-dialog';
 import { BillScannerDialog } from '@/components/bills/bill-scanner-dialog';
 import { BillCard } from '@/components/bills/bill-card';
 import { billStorage } from '@/lib/storage';
-import { Bill, BillStatus } from '@/types';
+import { Bill, BillStatus, BillCategory } from '@/types';
 import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess } from '@/utils/toast';
 import { getNextRecurringDate } from '@/lib/utils/date';
+
+const billCategories = [
+  { id: 'utilities', name: 'Utilities', icon: Zap, gradient: 'from-yellow-400 to-orange-500' },
+  { id: 'credit-card', name: 'Credit Cards', icon: CreditCard, gradient: 'from-blue-400 to-indigo-500' },
+  { id: 'rent', name: 'Rent & Housing', icon: Home, gradient: 'from-green-400 to-emerald-500' },
+  { id: 'insurance', name: 'Insurance', icon: Umbrella, gradient: 'from-purple-400 to-pink-500' },
+  { id: 'subscription', name: 'Subscriptions', icon: Wifi, gradient: 'from-cyan-400 to-blue-500' },
+  { id: 'other', name: 'General', icon: Mail, gradient: 'from-gray-400 to-slate-500' },
+];
 
 export default function Bills() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [filteredBills, setFilteredBills] = useState<Bill[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<BillStatus | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<BillCategory | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
@@ -30,7 +40,7 @@ export default function Bills() {
 
   useEffect(() => {
     filterBills();
-  }, [bills, searchTerm, statusFilter]);
+  }, [bills, searchTerm, statusFilter, selectedCategory]);
 
   const loadBills = () => {
     const allBills = billStorage.getAll();
@@ -39,6 +49,10 @@ export default function Bills() {
 
   const filterBills = () => {
     let filtered = [...bills];
+
+    if (selectedCategory) {
+      filtered = filtered.filter(bill => bill.category === selectedCategory);
+    }
 
     if (searchTerm) {
       filtered = filtered.filter(bill =>
@@ -130,19 +144,131 @@ export default function Bills() {
     setIsFormOpen(true);
   };
 
+  const handleCategorySelect = (categoryId: BillCategory) => {
+    setSelectedCategory(categoryId);
+  };
+
+  const handleBackToCategories = () => {
+    setSelectedCategory(null);
+    setSearchTerm('');
+    setStatusFilter('all');
+  };
+
+  const getCategoryBills = (categoryId: BillCategory) => {
+    return bills.filter(bill => bill.category === categoryId);
+  };
+
+  // Category View
+  if (!selectedCategory) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-purple-300 to-pink-200">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-white mb-2">Pay Bills</h1>
+            <p className="text-purple-100">Select a category to manage your bills</p>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex gap-3 mb-8">
+            <Button 
+              onClick={handleScanBill} 
+              className="flex-1 bg-white/90 hover:bg-white text-purple-700 shadow-lg backdrop-blur-sm"
+            >
+              <Scan className="h-5 w-5 mr-2" />
+              Scan Bill
+            </Button>
+            <Button 
+              onClick={handleAddNew}
+              className="flex-1 bg-white/90 hover:bg-white text-purple-700 shadow-lg backdrop-blur-sm"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Add Bill
+            </Button>
+          </div>
+
+          {/* Category Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {billCategories.map((category) => {
+              const CategoryIcon = category.icon;
+              const categoryBillCount = getCategoryBills(category.id as BillCategory).length;
+              
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategorySelect(category.id as BillCategory)}
+                  className="bg-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95"
+                >
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-md`}>
+                      <CategoryIcon className="h-10 w-10 text-white" strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 text-sm">{category.name}</p>
+                      {categoryBillCount > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">{categoryBillCount} bill{categoryBillCount !== 1 ? 's' : ''}</p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Scanner Dialog */}
+        <BillScannerDialog
+          open={isScannerOpen}
+          onOpenChange={setIsScannerOpen}
+          onBillScanned={handleBillScanned}
+        />
+
+        {/* Form Dialog */}
+        <BillFormDialog
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          bill={editingBill}
+          scannedData={scannedBillData}
+          onSave={handleSaveBill}
+        />
+      </div>
+    );
+  }
+
+  // Bills List View
+  const selectedCategoryData = billCategories.find(c => c.id === selectedCategory);
+  const CategoryIcon = selectedCategoryData?.icon || FileText;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bills</h1>
-          <p className="text-gray-500 mt-1">Track and manage your bills</p>
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBackToCategories}
+          className="hover:bg-gray-100"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg bg-gradient-to-br ${selectedCategoryData?.gradient}`}>
+              <CategoryIcon className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{selectedCategoryData?.name}</h1>
+              <p className="text-gray-500 text-sm">{filteredBills.length} bill{filteredBills.length !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleScanBill} variant="outline" className="shadow-lg">
+          <Button onClick={handleScanBill} variant="outline">
             <Scan className="h-4 w-4 mr-2" />
-            Scan Bill
+            Scan
           </Button>
-          <Button onClick={handleAddNew} className="shadow-lg">
+          <Button onClick={handleAddNew}>
             <Plus className="h-4 w-4 mr-2" />
             Add Bill
           </Button>
@@ -165,7 +291,7 @@ export default function Bills() {
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Bills</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="upcoming">Upcoming</SelectItem>
             <SelectItem value="overdue">Overdue</SelectItem>
             <SelectItem value="paid">Paid</SelectItem>
@@ -176,26 +302,26 @@ export default function Bills() {
       {/* Bills Grid */}
       {filteredBills.length === 0 ? (
         <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-6">
-            <FileText className="h-12 w-12 text-blue-600" />
+          <div className={`inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br ${selectedCategoryData?.gradient} mb-6`}>
+            <CategoryIcon className="h-12 w-12 text-white" />
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">
             {searchTerm || statusFilter !== 'all' 
               ? 'No bills match your filters' 
-              : 'No bills yet'}
+              : `No ${selectedCategoryData?.name} bills yet`}
           </h3>
           <p className="text-gray-500 mb-6">
             {searchTerm || statusFilter !== 'all'
               ? 'Try adjusting your search or filters'
-              : 'Add your first bill to get started tracking your payments'}
+              : 'Add your first bill to get started'}
           </p>
           {!searchTerm && statusFilter === 'all' && (
             <div className="flex gap-3 justify-center">
-              <Button onClick={handleScanBill} variant="outline" size="lg" className="shadow-lg">
+              <Button onClick={handleScanBill} variant="outline" size="lg">
                 <Scan className="h-5 w-5 mr-2" />
                 Scan a Bill
               </Button>
-              <Button onClick={handleAddNew} size="lg" className="shadow-lg">
+              <Button onClick={handleAddNew} size="lg">
                 <Plus className="h-5 w-5 mr-2" />
                 Add Manually
               </Button>
