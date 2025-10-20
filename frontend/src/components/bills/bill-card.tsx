@@ -23,13 +23,13 @@ const categoryIcons = {
   other: DollarSign,
 };
 
-const categoryColors = {
-  utilities: 'from-yellow-500 to-orange-500',
-  rent: 'from-blue-500 to-indigo-500',
-  insurance: 'from-green-500 to-emerald-500',
-  'credit-card': 'from-purple-500 to-pink-500',
-  subscription: 'from-cyan-500 to-blue-500',
-  other: 'from-gray-500 to-slate-500',
+const categoryStyles = {
+  utilities: { bg: 'bg-amber-50', icon: 'text-amber-700', border: 'border-amber-200' },
+  rent: { bg: 'bg-emerald-50', icon: 'text-emerald-700', border: 'border-emerald-200' },
+  insurance: { bg: 'bg-purple-50', icon: 'text-purple-700', border: 'border-purple-200' },
+  'credit-card': { bg: 'bg-blue-50', icon: 'text-blue-700', border: 'border-blue-200' },
+  subscription: { bg: 'bg-cyan-50', icon: 'text-cyan-700', border: 'border-cyan-200' },
+  other: { bg: 'bg-gray-50', icon: 'text-gray-700', border: 'border-gray-200' },
 };
 
 export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
@@ -38,7 +38,7 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
   const upcoming = isUpcoming(bill.dueDate, 30);
   
   const CategoryIcon = categoryIcons[bill.category] || DollarSign;
-  const gradientColor = categoryColors[bill.category] || categoryColors.other;
+  const styles = categoryStyles[bill.category] || categoryStyles.other;
 
   const handleSendReminder = () => {
     showSuccess(`Reminder sent for ${bill.name}`);
@@ -71,28 +71,29 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
 
   return (
     <Card className={cn(
-      'transition-all hover:shadow-lg hover:-translate-y-1 border-0 shadow-md',
-      overdue && bill.status !== 'paid' && 'ring-2 ring-red-200',
+      'transition-all hover:shadow-md border-2',
+      overdue && bill.status !== 'paid' && 'border-red-300',
+      !overdue && 'border-gray-200',
       bill.status === 'paid' && 'opacity-75'
     )}>
       <CardContent className="p-0">
-        {/* Gradient Header */}
-        <div className={cn('h-2 bg-gradient-to-r', gradientColor)}></div>
+        {/* Simple Header */}
+        <div className={cn('h-1', overdue && bill.status !== 'paid' ? 'bg-red-500' : 'bg-gray-200')}></div>
         
         <div className="p-5">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-3 flex-1">
-              <div className={cn('p-3 rounded-xl bg-gradient-to-br shadow-sm', gradientColor)}>
-                <CategoryIcon className="h-6 w-6 text-white" />
+              <div className={cn('p-2.5 rounded-lg border', styles.bg, styles.border)}>
+                <CategoryIcon className={cn('h-6 w-6', styles.icon)} strokeWidth={2} />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-lg mb-1">{bill.name}</h3>
+                <h3 className="font-bold text-lg mb-1 text-gray-900">{bill.name}</h3>
                 <div className="flex items-center gap-2 flex-wrap">
                   {getStatusBadge()}
                   {bill.reminderEnabled ? (
                     <Badge variant="outline" className="text-xs flex items-center gap-1">
                       <Bell className="h-3 w-3" />
-                      Reminders On
+                      Reminders
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-xs flex items-center gap-1 text-gray-400">
@@ -131,20 +132,20 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
           
           <div className="space-y-3">
             {/* Current Bill Amount */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
               <span className="text-sm text-gray-600">Current Amount</span>
               <span className="font-bold text-xl text-gray-900">${bill.amount.toFixed(2)}</span>
             </div>
             
             {/* Due Date */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
               <span className="text-sm text-gray-600">Due Date</span>
               <span className="font-medium text-gray-900">{formatDate(bill.dueDate)}</span>
             </div>
 
             {/* Outstanding Amount */}
             {outstandingAmount > 0 && (
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border-2 border-red-300">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-red-600" />
                   <span className="text-sm font-medium text-red-900">Outstanding</span>
@@ -183,7 +184,7 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
                 </div>
                 <div className="space-y-2">
                   {recentPayments.map((payment) => (
-                    <div key={payment.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                    <div key={payment.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md border border-gray-200">
                       <div>
                         <p className="text-xs text-gray-600">{formatDate(payment.date)}</p>
                         <p className={cn(
@@ -212,7 +213,7 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
             )}
             
             {/* Recurrence Info */}
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm pt-2 border-t">
               <span className="text-gray-500 capitalize">{bill.category.replace('-', ' ')}</span>
               <span className="text-gray-500 capitalize">{bill.recurrence.replace('-', ' ')}</span>
             </div>

@@ -13,12 +13,54 @@ import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess } from '@/utils/toast';
 
 const billCategories = [
-  { id: 'utilities', name: 'Utilities', icon: Zap, gradient: 'from-yellow-400 to-orange-500' },
-  { id: 'credit-card', name: 'Credit Cards', icon: CreditCard, gradient: 'from-blue-400 to-indigo-500' },
-  { id: 'rent', name: 'Rent & Housing', icon: Home, gradient: 'from-green-400 to-emerald-500' },
-  { id: 'insurance', name: 'Insurance', icon: Umbrella, gradient: 'from-purple-400 to-pink-500' },
-  { id: 'subscription', name: 'Subscriptions', icon: Wifi, gradient: 'from-cyan-400 to-blue-500' },
-  { id: 'other', name: 'General', icon: Mail, gradient: 'from-gray-400 to-slate-500' },
+  { 
+    id: 'utilities', 
+    name: 'Utilities', 
+    icon: Zap, 
+    color: 'bg-amber-100',
+    iconColor: 'text-amber-700',
+    borderColor: 'border-amber-200'
+  },
+  { 
+    id: 'credit-card', 
+    name: 'Credit Cards', 
+    icon: CreditCard, 
+    color: 'bg-blue-100',
+    iconColor: 'text-blue-700',
+    borderColor: 'border-blue-200'
+  },
+  { 
+    id: 'rent', 
+    name: 'Rent & Housing', 
+    icon: Home, 
+    color: 'bg-emerald-100',
+    iconColor: 'text-emerald-700',
+    borderColor: 'border-emerald-200'
+  },
+  { 
+    id: 'insurance', 
+    name: 'Insurance', 
+    icon: Umbrella, 
+    color: 'bg-purple-100',
+    iconColor: 'text-purple-700',
+    borderColor: 'border-purple-200'
+  },
+  { 
+    id: 'subscription', 
+    name: 'Subscriptions', 
+    icon: Wifi, 
+    color: 'bg-cyan-100',
+    iconColor: 'text-cyan-700',
+    borderColor: 'border-cyan-200'
+  },
+  { 
+    id: 'other', 
+    name: 'General', 
+    icon: Mail, 
+    color: 'bg-gray-100',
+    iconColor: 'text-gray-700',
+    borderColor: 'border-gray-200'
+  },
 ];
 
 export default function Bills() {
@@ -140,14 +182,14 @@ export default function Bills() {
         <div className="flex gap-3">
           <Button 
             onClick={handleScanBill} 
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+            className="flex-1 bg-gray-900 hover:bg-gray-800 text-white shadow-md"
           >
             <Scan className="h-5 w-5 mr-2" />
             Scan Bill
           </Button>
           <Button 
             onClick={handleAddNew}
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-lg"
+            className="flex-1 bg-gray-900 hover:bg-gray-800 text-white shadow-md"
           >
             <Plus className="h-5 w-5 mr-2" />
             Add Bill
@@ -164,14 +206,14 @@ export default function Bills() {
               <button
                 key={category.id}
                 onClick={() => handleCategorySelect(category.id as BillCategory)}
-                className="bg-white border border-gray-200 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95"
+                className={`bg-white border-2 ${category.borderColor} rounded-2xl p-6 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-98`}
               >
                 <div className="flex flex-col items-center text-center space-y-3">
-                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-md`}>
-                    <CategoryIcon className="h-10 w-10 text-white" strokeWidth={1.5} />
+                  <div className={`w-20 h-20 rounded-xl ${category.color} border ${category.borderColor} flex items-center justify-center`}>
+                    <CategoryIcon className={`h-10 w-10 ${category.iconColor}`} strokeWidth={2} />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800 text-sm">{category.name}</p>
+                    <p className="font-semibold text-gray-900 text-sm">{category.name}</p>
                     {categoryBillCount > 0 && (
                       <p className="text-xs text-gray-500 mt-1">{categoryBillCount} bill{categoryBillCount !== 1 ? 's' : ''}</p>
                     )}
@@ -220,8 +262,8 @@ export default function Bills() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-gradient-to-br ${selectedCategoryData?.gradient}`}>
-              <CategoryIcon className="h-6 w-6 text-white" />
+            <div className={`p-2 rounded-lg ${selectedCategoryData?.color} border ${selectedCategoryData?.borderColor}`}>
+              <CategoryIcon className={`h-6 w-6 ${selectedCategoryData?.iconColor}`} />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{selectedCategoryData?.name}</h1>
@@ -268,8 +310,8 @@ export default function Bills() {
       {/* Bills Grid */}
       {filteredBills.length === 0 ? (
         <div className="text-center py-16">
-          <div className={`inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br ${selectedCategoryData?.gradient} mb-6`}>
-            <CategoryIcon className="h-12 w-12 text-white" />
+          <div className={`inline-flex items-center justify-center w-24 h-24 rounded-xl ${selectedCategoryData?.color} border-2 ${selectedCategoryData?.borderColor} mb-6`}>
+            <CategoryIcon className={`h-12 w-12 ${selectedCategoryData?.iconColor}`} />
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">
             {searchTerm || statusFilter !== 'all' 
