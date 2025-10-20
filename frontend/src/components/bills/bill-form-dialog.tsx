@@ -8,18 +8,20 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bill, BillCategory, BillRecurrence } from '@/types';
+import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess, showError } from '@/utils/toast';
-import { Bell, CreditCard, Info } from 'lucide-react';
+import { Bell, CreditCard, Info, Scan } from 'lucide-react';
 import { paymentStorage } from '@/lib/storage';
 
 interface BillFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bill?: Bill | null;
+  scannedData?: ScannedBillData | null;
   onSave: (bill: Bill) => void;
 }
 
-export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDialogProps) {
+export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave }: BillFormDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
@@ -35,7 +37,20 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
   const paymentMethods = paymentStorage.getAll();
 
   useEffect(() => {
-    if (bill) {
+    if (scannedData) {
+      // Pre-fill with scanned data
+      setFormData({
+        name: scannedData.name,
+        amount: scannedData.amount.toString(),
+        dueDate: scannedData.dueDate,
+        category: scannedData.category,
+        recurrence: scannedData.recurrence,
+        reminderEnabled: true,
+        reminderDays: [7, 3, 1],
+        autoPayEnabled: false,
+        paymentMethodId: '',
+      });
+    } else if (bill) {
       setFormData({
         name: bill.name,
         amount: bill.amount.toString(),
@@ -60,7 +75,7 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
         paymentMethodId: '',
       });
     }
-  }, [bill, open]);
+  }, [bill, scannedData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,11 +135,21 @@ export function BillFormDialog({ open, onOpenChange, bill, onSave }: BillFormDia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{bill ? 'Edit Bill' : 'Add New Bill'}</DialogTitle>
+          <DialogTitle>{bill ? 'Edit Bill' : scannedData ? 'Review Scanned Bill' : 'Add New Bill'}</DialogTitle>
           <DialogDescription>
-            {bill ? 'Update bill information' : 'Add a new bill to track'}
+            {bill ? 'Update bill information' : scannedData ? 'Review and edit the scanned information' : 'Add a new bill to track'}
           </DialogDescription>
         </DialogHeader>
+
+        {scannedData && (
+          <Alert className="bg-green-50 border-green-200">
+            <Scan className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800 text-sm">
+              Information extracted from your bill. Please review and edit if needed.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">

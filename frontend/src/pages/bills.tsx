@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, FileText } from 'lucide-react';
+import { Plus, Search, FileText, Scan } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { BillFormDialog } from '@/components/bills/bill-form-dialog';
+import { BillScannerDialog } from '@/components/bills/bill-scanner-dialog';
 import { BillCard } from '@/components/bills/bill-card';
 import { billStorage } from '@/lib/storage';
 import { Bill, BillStatus } from '@/types';
+import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess } from '@/utils/toast';
 import { getNextRecurringDate } from '@/lib/utils/date';
 
@@ -17,7 +19,9 @@ export default function Bills() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<BillStatus | 'all'>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
+  const [scannedBillData, setScannedBillData] = useState<ScannedBillData | null>(null);
   const [deletingBill, setDeletingBill] = useState<Bill | null>(null);
 
   useEffect(() => {
@@ -57,10 +61,12 @@ export default function Bills() {
     }
     loadBills();
     setEditingBill(null);
+    setScannedBillData(null);
   };
 
   const handleEditBill = (bill: Bill) => {
     setEditingBill(bill);
+    setScannedBillData(null);
     setIsFormOpen(true);
   };
 
@@ -82,6 +88,7 @@ export default function Bills() {
       id: `payment-${Date.now()}`,
       date: new Date().toISOString(),
       amount: bill.amount,
+      status: 'success' as const,
     };
 
     const updates: Partial<Bill> = {
@@ -109,6 +116,17 @@ export default function Bills() {
 
   const handleAddNew = () => {
     setEditingBill(null);
+    setScannedBillData(null);
+    setIsFormOpen(true);
+  };
+
+  const handleScanBill = () => {
+    setIsScannerOpen(true);
+  };
+
+  const handleBillScanned = (billData: ScannedBillData) => {
+    setScannedBillData(billData);
+    setEditingBill(null);
     setIsFormOpen(true);
   };
 
@@ -119,10 +137,16 @@ export default function Bills() {
           <h1 className="text-3xl font-bold text-gray-900">Bills</h1>
           <p className="text-gray-500 mt-1">Track and manage your bills</p>
         </div>
-        <Button onClick={handleAddNew} className="shadow-lg">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Bill
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleScanBill} variant="outline" className="shadow-lg">
+            <Scan className="h-4 w-4 mr-2" />
+            Scan Bill
+          </Button>
+          <Button onClick={handleAddNew} className="shadow-lg">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Bill
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -166,10 +190,16 @@ export default function Bills() {
               : 'Add your first bill to get started tracking your payments'}
           </p>
           {!searchTerm && statusFilter === 'all' && (
-            <Button onClick={handleAddNew} size="lg" className="shadow-lg">
-              <Plus className="h-5 w-5 mr-2" />
-              Add Your First Bill
-            </Button>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={handleScanBill} variant="outline" size="lg" className="shadow-lg">
+                <Scan className="h-5 w-5 mr-2" />
+                Scan a Bill
+              </Button>
+              <Button onClick={handleAddNew} size="lg" className="shadow-lg">
+                <Plus className="h-5 w-5 mr-2" />
+                Add Manually
+              </Button>
+            </div>
           )}
         </div>
       ) : (
@@ -186,11 +216,19 @@ export default function Bills() {
         </div>
       )}
 
+      {/* Scanner Dialog */}
+      <BillScannerDialog
+        open={isScannerOpen}
+        onOpenChange={setIsScannerOpen}
+        onBillScanned={handleBillScanned}
+      />
+
       {/* Form Dialog */}
       <BillFormDialog
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         bill={editingBill}
+        scannedData={scannedBillData}
         onSave={handleSaveBill}
       />
 
