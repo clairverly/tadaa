@@ -161,59 +161,57 @@ export default function Bills() {
   // Category View
   if (!selectedCategory) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-purple-300 to-pink-200">
-        <div className="container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Pay Bills</h1>
-            <p className="text-purple-100">Select a category to manage your bills</p>
-          </div>
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Pay Bills</h1>
+          <p className="text-gray-500">Select a category to manage your bills</p>
+        </div>
 
-          {/* Quick Actions */}
-          <div className="flex gap-3 mb-8">
-            <Button 
-              onClick={handleScanBill} 
-              className="flex-1 bg-white/90 hover:bg-white text-purple-700 shadow-lg backdrop-blur-sm"
-            >
-              <Scan className="h-5 w-5 mr-2" />
-              Scan Bill
-            </Button>
-            <Button 
-              onClick={handleAddNew}
-              className="flex-1 bg-white/90 hover:bg-white text-purple-700 shadow-lg backdrop-blur-sm"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Add Bill
-            </Button>
-          </div>
+        {/* Quick Actions */}
+        <div className="flex gap-3">
+          <Button 
+            onClick={handleScanBill} 
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+          >
+            <Scan className="h-5 w-5 mr-2" />
+            Scan Bill
+          </Button>
+          <Button 
+            onClick={handleAddNew}
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-lg"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Add Bill
+          </Button>
+        </div>
 
-          {/* Category Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            {billCategories.map((category) => {
-              const CategoryIcon = category.icon;
-              const categoryBillCount = getCategoryBills(category.id as BillCategory).length;
-              
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategorySelect(category.id as BillCategory)}
-                  className="bg-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95"
-                >
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-md`}>
-                      <CategoryIcon className="h-10 w-10 text-white" strokeWidth={1.5} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-800 text-sm">{category.name}</p>
-                      {categoryBillCount > 0 && (
-                        <p className="text-xs text-gray-500 mt-1">{categoryBillCount} bill{categoryBillCount !== 1 ? 's' : ''}</p>
-                      )}
-                    </div>
+        {/* Category Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          {billCategories.map((category) => {
+            const CategoryIcon = category.icon;
+            const categoryBillCount = getCategoryBills(category.id as BillCategory).length;
+            
+            return (
+              <button
+                key={category.id}
+                onClick={() => handleCategorySelect(category.id as BillCategory)}
+                className="bg-white border border-gray-200 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95"
+              >
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-md`}>
+                    <CategoryIcon className="h-10 w-10 text-white" strokeWidth={1.5} />
                   </div>
-                </button>
-              );
-            })}
-          </div>
+                  <div>
+                    <p className="font-semibold text-gray-800 text-sm">{category.name}</p>
+                    {categoryBillCount > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">{categoryBillCount} bill{categoryBillCount !== 1 ? 's' : ''}</p>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Scanner Dialog */}
