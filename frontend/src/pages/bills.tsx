@@ -238,6 +238,7 @@ export default function Bills() {
           bill={editingBill}
           scannedData={scannedBillData}
           onSave={handleSaveBill}
+          defaultCategory={null}
         />
       </div>
     );
@@ -356,13 +357,14 @@ export default function Bills() {
         onBillScanned={handleBillScanned}
       />
 
-      {/* Form Dialog */}
+      {/* Form Dialog - Pass selected category as default */}
       <BillFormDialog
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         bill={editingBill}
         scannedData={scannedBillData}
         onSave={handleSaveBill}
+        defaultCategory={selectedCategory}
       />
 
       {/* Delete Confirmation */}

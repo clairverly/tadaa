@@ -19,9 +19,10 @@ interface BillFormDialogProps {
   bill?: Bill | null;
   scannedData?: ScannedBillData | null;
   onSave: (bill: Bill) => void;
+  defaultCategory?: BillCategory | null;
 }
 
-export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave }: BillFormDialogProps) {
+export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, defaultCategory }: BillFormDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
@@ -63,11 +64,12 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave }
         paymentMethodId: bill.paymentMethodId || '',
       });
     } else {
+      // New bill - use default category if provided
       setFormData({
         name: '',
         amount: '',
         dueDate: '',
-        category: 'utilities',
+        category: defaultCategory || 'utilities',
         recurrence: 'monthly',
         reminderEnabled: true,
         reminderDays: [7, 3, 1],
@@ -75,7 +77,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave }
         paymentMethodId: '',
       });
     }
-  }, [bill, scannedData, open]);
+  }, [bill, scannedData, defaultCategory, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
