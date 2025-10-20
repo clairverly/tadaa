@@ -5,12 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Bill, BillCategory, BillRecurrence } from '@/types';
+import { Bill, BillCategory } from '@/types';
 import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess, showError } from '@/utils/toast';
-import { Bell, CreditCard, Info, Scan } from 'lucide-react';
+import { CreditCard, Info, Scan, Mail, Sparkles } from 'lucide-react';
 import { paymentStorage } from '@/lib/storage';
 
 interface BillFormDialogProps {
@@ -25,12 +24,7 @@ interface BillFormDialogProps {
 export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, defaultCategory }: BillFormDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
-    amount: '',
-    dueDate: '',
     category: 'utilities' as BillCategory,
-    recurrence: 'monthly' as BillRecurrence,
-    reminderEnabled: true,
-    reminderDays: [7, 3, 1],
     autoPayEnabled: false,
     paymentMethodId: '',
   });
@@ -42,24 +36,14 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       // Pre-fill with scanned data
       setFormData({
         name: scannedData.name,
-        amount: scannedData.amount.toString(),
-        dueDate: scannedData.dueDate,
         category: scannedData.category,
-        recurrence: scannedData.recurrence,
-        reminderEnabled: true,
-        reminderDays: [7, 3, 1],
         autoPayEnabled: false,
         paymentMethodId: '',
       });
     } else if (bill) {
       setFormData({
         name: bill.name,
-        amount: bill.amount.toString(),
-        dueDate: bill.dueDate.split('T')[0],
         category: bill.category,
-        recurrence: bill.recurrence,
-        reminderEnabled: bill.reminderEnabled ?? true,
-        reminderDays: bill.reminderDays || [7, 3, 1],
         autoPayEnabled: bill.autoPayEnabled || false,
         paymentMethodId: bill.paymentMethodId || '',
       });
@@ -67,12 +51,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       // New bill - use default category if provided
       setFormData({
         name: '',
-        amount: '',
-        dueDate: '',
         category: defaultCategory || 'utilities',
-        recurrence: 'monthly',
-        reminderEnabled: true,
-        reminderDays: [7, 3, 1],
         autoPayEnabled: false,
         paymentMethodId: '',
       });
@@ -82,8 +61,8 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.amount || !formData.dueDate) {
-      showError('Please fill in all required fields');
+    if (!formData.name) {
+      showError('Please enter the bill name');
       return;
     }
 
@@ -92,22 +71,17 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       return;
     }
 
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
-      showError('Please enter a valid amount');
-      return;
-    }
-
+    // For new bills, create with placeholder values that will be updated via email
     const newBill: Bill = {
       id: bill?.id || `bill-${Date.now()}`,
       name: formData.name,
-      amount,
-      dueDate: new Date(formData.dueDate).toISOString(),
+      amount: bill?.amount || 0, // Placeholder - will be updated via email
+      dueDate: bill?.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Placeholder - 30 days from now
       category: formData.category,
-      recurrence: formData.recurrence,
-      status: 'upcoming',
-      reminderDays: formData.reminderEnabled ? formData.reminderDays : [],
-      reminderEnabled: formData.reminderEnabled,
+      recurrence: bill?.recurrence || 'monthly', // Default to monthly
+      status: bill?.status || 'upcoming',
+      reminderDays: bill?.reminderDays || [7, 3, 1], // Default reminders
+      reminderEnabled: bill?.reminderEnabled ?? true, // Auto-enabled
       autoPayEnabled: formData.autoPayEnabled,
       paymentMethodId: formData.autoPayEnabled ? formData.paymentMethodId : undefined,
       retryCount: bill?.retryCount || 0,
@@ -117,29 +91,17 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
     };
 
     onSave(newBill);
-    showSuccess(bill ? 'Bill updated successfully' : 'Bill added successfully');
+    showSuccess(bill ? 'Bill updated successfully' : 'Bill added successfully. Forward bill emails to update details.');
     onOpenChange(false);
-  };
-
-  const toggleReminderDay = (day: number) => {
-    const days = [...formData.reminderDays];
-    const index = days.indexOf(day);
-    if (index > -1) {
-      days.splice(index, 1);
-    } else {
-      days.push(day);
-      days.sort((a, b) => b - a);
-    }
-    setFormData({ ...formData, reminderDays: days });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{bill ? 'Edit Bill' : scannedData ? 'Review Scanned Bill' : 'Add New Bill'}</DialogTitle>
           <DialogDescription>
-            {bill ? 'Update bill information' : scannedData ? 'Review and edit the scanned information' : 'Add a new bill to track'}
+            {bill ? 'Update bill information' : scannedData ? 'Review and edit the scanned information' : 'Add a biller to track - details will be updated via email'}
           </DialogDescription>
         </DialogHeader>
 
@@ -152,42 +114,37 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
           </Alert>
         )}
 
+        {!bill && !scannedData && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Mail className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800 text-sm">
+              <div className="flex items-start gap-2">
+                <Sparkles className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong>Email-First Workflow:</strong> Just add the biller name and category. When you forward bill emails, we'll automatically update amounts, due dates, and set up smart reminders.
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Bill Name *</Label>
+              <Label htmlFor="name">Biller Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Electric Bill"
+                placeholder="e.g., Pacific Gas & Electric, Comcast, State Farm"
               />
+              <p className="text-xs text-gray-500">
+                Enter the company or service provider name
+              </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="amount">Amount *</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="dueDate">Due Date *</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">Category *</Label>
               <Select
                 value={formData.category}
                 onValueChange={(value) => setFormData({ ...formData, category: value as BillCategory })}
@@ -197,31 +154,16 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="utilities">Utilities</SelectItem>
-                  <SelectItem value="rent">Rent</SelectItem>
+                  <SelectItem value="rent">Rent & Housing</SelectItem>
                   <SelectItem value="insurance">Insurance</SelectItem>
-                  <SelectItem value="subscription">Subscription</SelectItem>
-                  <SelectItem value="credit-card">Credit Card</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="subscription">Subscriptions</SelectItem>
+                  <SelectItem value="credit-card">Credit Cards</SelectItem>
+                  <SelectItem value="other">General</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="recurrence">Recurrence</Label>
-              <Select
-                value={formData.recurrence}
-                onValueChange={(value) => setFormData({ ...formData, recurrence: value as BillRecurrence })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="one-time">One-time</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="yearly">Yearly</SelectItem>
-                </SelectContent>
-              </Select>
+              <p className="text-xs text-gray-500">
+                Helps organize your bills by type
+              </p>
             </div>
 
             {/* Auto-Pay Settings */}
@@ -229,7 +171,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-gray-500" />
-                  <Label htmlFor="autoPayEnabled" className="cursor-pointer">Enable Auto-Pay</Label>
+                  <Label htmlFor="autoPayEnabled" className="cursor-pointer">Enable Auto-Pay (Optional)</Label>
                 </div>
                 <Switch
                   id="autoPayEnabled"
@@ -243,7 +185,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                   <Alert className="bg-blue-50 border-blue-200">
                     <Info className="h-4 w-4 text-blue-600" />
                     <AlertDescription className="text-blue-800 text-sm">
-                      Auto-pay will attempt payment 3 times if it fails. You'll be notified of any issues.
+                      Auto-pay will automatically process payments when bills arrive via email. Up to 3 retry attempts if payment fails.
                     </AlertDescription>
                   </Alert>
 
@@ -273,43 +215,21 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               )}
             </div>
 
-            {/* Reminder Settings */}
-            <div className="border-t pt-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-gray-500" />
-                  <Label htmlFor="reminderEnabled" className="cursor-pointer">Enable Reminders</Label>
-                </div>
-                <Switch
-                  id="reminderEnabled"
-                  checked={formData.reminderEnabled}
-                  onCheckedChange={(checked) => setFormData({ ...formData, reminderEnabled: checked })}
-                />
-              </div>
-
-              {formData.reminderEnabled && (
-                <div className="space-y-3 pl-6">
-                  <Label className="text-sm text-gray-600">Remind me before due date:</Label>
-                  <div className="space-y-2">
-                    {[14, 7, 3, 1].map(day => (
-                      <div key={day} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`reminder-${day}`}
-                          checked={formData.reminderDays.includes(day)}
-                          onCheckedChange={() => toggleReminderDay(day)}
-                        />
-                        <label
-                          htmlFor={`reminder-${day}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                        >
-                          {day === 1 ? '1 day before' : `${day} days before`}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Email Integration Info */}
+            {!bill && (
+              <Alert className="bg-purple-50 border-purple-200">
+                <Mail className="h-4 w-4 text-purple-600" />
+                <AlertDescription className="text-purple-800 text-sm">
+                  <strong>Next Steps:</strong>
+                  <ol className="list-decimal list-inside mt-2 space-y-1 text-xs">
+                    <li>Save this bill to your account</li>
+                    <li>Forward bill emails from this biller to your unique email address</li>
+                    <li>We'll automatically extract amounts, due dates, and set up reminders</li>
+                    <li>Get notified when bills arrive with quick payment options</li>
+                  </ol>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           <DialogFooter>
@@ -317,7 +237,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               Cancel
             </Button>
             <Button type="submit">
-              {bill ? 'Update Bill' : 'Add Bill'}
+              {bill ? 'Update Bill' : 'Add Biller'}
             </Button>
           </DialogFooter>
         </form>
