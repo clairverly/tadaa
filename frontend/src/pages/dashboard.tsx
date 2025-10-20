@@ -35,13 +35,42 @@ export default function Dashboard() {
         <div className="absolute top-0 right-0 -mt-4 -mr-4 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
         
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-6 w-6" />
-            <span className="text-sm font-medium opacity-90">Welcome back!</span>
+        {/* Decorative circles */}
+        <div className="absolute top-10 right-20 w-32 h-32 border-4 border-white/20 rounded-full"></div>
+        <div className="absolute bottom-10 right-40 w-20 h-20 border-4 border-white/10 rounded-full"></div>
+        
+        <div className="relative flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-6 w-6" />
+              <span className="text-sm font-medium opacity-90">Welcome back!</span>
+            </div>
+            <h1 className="text-4xl font-bold mb-2">Your Dashboard</h1>
+            <p className="text-blue-100 text-lg">Everything you need to stay organized and on track</p>
           </div>
-          <h1 className="text-4xl font-bold mb-2">Your Dashboard</h1>
-          <p className="text-blue-100 text-lg">Everything you need to stay organized and on track</p>
+          
+          {/* Hero Illustration */}
+          <div className="hidden lg:block">
+            <div className="relative w-64 h-64">
+              <div className="absolute inset-0 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="relative flex items-center justify-center h-full">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="w-24 h-24 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center transform rotate-6 hover:rotate-12 transition-transform">
+                    <FileText className="h-12 w-12" />
+                  </div>
+                  <div className="w-24 h-24 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center transform -rotate-6 hover:-rotate-12 transition-transform">
+                    <ShoppingBag className="h-12 w-12" />
+                  </div>
+                  <div className="w-24 h-24 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center transform -rotate-3 hover:-rotate-6 transition-transform">
+                    <Calendar className="h-12 w-12" />
+                  </div>
+                  <div className="w-24 h-24 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center transform rotate-3 hover:rotate-6 transition-transform">
+                    <CheckCircle2 className="h-12 w-12" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -173,13 +202,16 @@ export default function Dashboard() {
           <CardContent>
             {upcomingBills.length === 0 ? (
               <div className="text-center py-8">
-                <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No upcoming bills</p>
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-3">
+                  <CheckCircle2 className="h-10 w-10 text-green-500" />
+                </div>
+                <p className="text-sm text-gray-500 font-medium">No upcoming bills</p>
+                <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {upcomingBills.slice(0, 3).map(bill => (
-                  <div key={bill.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div key={bill.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-transparent rounded-lg hover:from-blue-100 transition-colors">
                     <div>
                       <p className="font-medium text-sm">{bill.name}</p>
                       <p className="text-xs text-gray-500">{formatDate(bill.dueDate)}</p>
@@ -211,13 +243,16 @@ export default function Dashboard() {
           <CardContent>
             {activeErrands.length === 0 ? (
               <div className="text-center py-8">
-                <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No active errands</p>
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-3">
+                  <CheckCircle2 className="h-10 w-10 text-green-500" />
+                </div>
+                <p className="text-sm text-gray-500 font-medium">No active errands</p>
+                <p className="text-xs text-gray-400 mt-1">All tasks completed!</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {activeErrands.slice(0, 3).map(errand => (
-                  <div key={errand.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div key={errand.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-transparent rounded-lg hover:from-purple-100 transition-colors">
                     <div className="flex-1">
                       <p className="font-medium text-sm">{errand.description.substring(0, 30)}...</p>
                       <p className="text-xs text-gray-500 capitalize">{errand.type.replace('-', ' ')}</p>
@@ -251,13 +286,16 @@ export default function Dashboard() {
           <CardContent>
             {upcomingAppointments.length === 0 ? (
               <div className="text-center py-8">
-                <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No upcoming appointments</p>
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-3">
+                  <CheckCircle2 className="h-10 w-10 text-green-500" />
+                </div>
+                <p className="text-sm text-gray-500 font-medium">No upcoming appointments</p>
+                <p className="text-xs text-gray-400 mt-1">Your schedule is clear!</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {upcomingAppointments.slice(0, 3).map(apt => (
-                  <div key={apt.id} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div key={apt.id} className="p-3 bg-gradient-to-r from-green-50 to-transparent rounded-lg hover:from-green-100 transition-colors">
                     <p className="font-medium text-sm">{apt.title}</p>
                     <p className="text-xs text-gray-500">
                       {formatDate(apt.date)} at {apt.time}
