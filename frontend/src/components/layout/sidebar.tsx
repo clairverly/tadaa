@@ -2,6 +2,7 @@ import { Home, FileText, ShoppingBag, Calendar, AlertCircle, CreditCard, Bell, U
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { billStorage, appointmentStorage, errandStorage, paymentStorage, notificationStorage } from '@/lib/storage';
 import { generateAllNotifications } from '@/lib/notifications';
 
@@ -54,36 +55,55 @@ export function Sidebar() {
           </Link>
           
           {/* Navigation */}
-          <nav className="flex items-center gap-1">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={cn(
-                    'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors relative',
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span className="hidden lg:inline">{item.name}</span>
-                  {item.showBadge && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  )}
-                  {item.badge && (
-                    <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+          <TooltipProvider delayDuration={200}>
+            <nav className="flex items-center gap-1">
+              {navigation.map((item) => {
+                const isActive = location.pathname === item.href;
+                return (
+                  <Tooltip key={item.name}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={item.href}
+                        className={cn(
+                          'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors relative',
+                          isActive
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span className="hidden lg:inline">{item.name}</span>
+                        {item.showBadge && unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        )}
+                        {item.badge && (
+                          <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="bottom" 
+                      className="bg-gray-800 text-white border-gray-700"
+                    >
+                      <p className="font-medium">{item.name}</p>
+                      {item.badge && (
+                        <p className="text-xs text-gray-400 mt-0.5">Coming Soon</p>
+                      )}
+                      {item.showBadge && unreadCount > 0 && (
+                        <p className="text-xs text-red-400 mt-0.5">
+                          {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </nav>
+          </TooltipProvider>
 
           {/* Tagline */}
           <div className="hidden xl:block">
