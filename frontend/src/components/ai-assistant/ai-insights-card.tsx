@@ -2,7 +2,7 @@ import { AIInsight } from '@/lib/ai-insights';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Bell, TrendingUp, AlertCircle, Lightbulb, Calendar, ArrowRight } from 'lucide-react';
+import { Sparkles, Bell, TrendingUp, AlertCircle, Lightbulb, Calendar, ArrowRight, DollarSign, TrendingDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +26,10 @@ export function AIInsightsCard({ insights, onExportToCalendar }: AIInsightsCardP
         return <AlertCircle className="h-5 w-5" />;
       case 'tip':
         return <Lightbulb className="h-5 w-5" />;
+      case 'trend':
+        return <TrendingUp className="h-5 w-5" />;
+      case 'savings':
+        return <DollarSign className="h-5 w-5" />;
     }
   };
 
@@ -54,6 +58,10 @@ export function AIInsightsCard({ insights, onExportToCalendar }: AIInsightsCardP
         return 'text-red-600 bg-red-50';
       case 'tip':
         return 'text-green-600 bg-green-50';
+      case 'trend':
+        return 'text-amber-600 bg-amber-50';
+      case 'savings':
+        return 'text-emerald-600 bg-emerald-50';
     }
   };
 
@@ -71,6 +79,11 @@ export function AIInsightsCard({ insights, onExportToCalendar }: AIInsightsCardP
     );
   }
 
+  // Calculate total potential savings
+  const totalSavings = insights
+    .filter(i => i.savingsAmount)
+    .reduce((sum, i) => sum + (i.savingsAmount || 0), 0);
+
   return (
     <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
       <CardHeader>
@@ -81,15 +94,23 @@ export function AIInsightsCard({ insights, onExportToCalendar }: AIInsightsCardP
             </div>
             <div>
               <CardTitle className="text-purple-900">AI Assistant</CardTitle>
-              <CardDescription>Smart insights and reminders</CardDescription>
+              <CardDescription>Smart insights and recommendations</CardDescription>
             </div>
           </div>
-          {onExportToCalendar && (
-            <Button variant="outline" size="sm" onClick={onExportToCalendar}>
-              <Calendar className="h-4 w-4 mr-2" />
-              Export to Calendar
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {totalSavings > 0 && (
+              <Badge className="bg-green-100 text-green-800 border-green-200 px-3 py-1">
+                <DollarSign className="h-3 w-3 mr-1" />
+                Save ${totalSavings.toFixed(0)}/mo
+              </Badge>
+            )}
+            {onExportToCalendar && (
+              <Button variant="outline" size="sm" onClick={onExportToCalendar}>
+                <Calendar className="h-4 w-4 mr-2" />
+                Export to Calendar
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -107,11 +128,17 @@ export function AIInsightsCard({ insights, onExportToCalendar }: AIInsightsCardP
               </div>
               
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h4 className="font-semibold text-sm">{insight.title}</h4>
                   <Badge variant="outline" className="text-xs capitalize">
                     {insight.type}
                   </Badge>
+                  {insight.savingsAmount && (
+                    <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                      <TrendingDown className="h-3 w-3 mr-1" />
+                      Save ${insight.savingsAmount.toFixed(0)}
+                    </Badge>
+                  )}
                 </div>
                 
                 <p className="text-sm text-gray-700 mb-2 leading-relaxed">

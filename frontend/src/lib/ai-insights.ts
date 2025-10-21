@@ -3,7 +3,7 @@ import { getDaysUntil, formatDate } from './utils/date';
 
 export interface AIInsight {
   id: string;
-  type: 'reminder' | 'pattern' | 'prediction' | 'alert' | 'tip';
+  type: 'reminder' | 'pattern' | 'prediction' | 'alert' | 'tip' | 'trend' | 'savings';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   title: string;
   message: string;
@@ -11,6 +11,7 @@ export interface AIInsight {
   actionable: boolean;
   actionUrl?: string;
   relatedBillId?: string;
+  savingsAmount?: number;
   timestamp: string;
 }
 
@@ -27,6 +28,25 @@ export interface BillPrediction {
   predictedAmount: number;
   confidence: number;
   basedOnHistory: number;
+}
+
+export interface TrendAnalysis {
+  billId: string;
+  billName: string;
+  category: string;
+  currentAmount: number;
+  previousAverage: number;
+  percentageChange: number;
+  trend: 'increasing' | 'decreasing' | 'stable';
+  monthsAnalyzed: number;
+}
+
+export interface SubscriptionAnalysis {
+  category: string;
+  totalMonthly: number;
+  bills: Array<{ name: string; amount: number }>;
+  potentialSavings: number;
+  recommendation: string;
 }
 
 // Generate natural language reminders
@@ -104,6 +124,209 @@ export function generateNaturalLanguageReminders(bills: Bill[]): AIInsight[] {
   return insights;
 }
 
+// Analyze historical trends for individual bills
+export function analyzeBillTrends(bills: Bill[]): AIInsight[] {
+  const insights: AIInsight[] = [];
+  const now = new Date();
+
+  bills.forEach(bill => {
+    if (bill.paymentHistory.length < 3) return; // Need at least 3 months of history
+
+    // Get last 3 months of payments
+    const recentPayments = bill.paymentHistory.slice(-3);
+    const amounts = recentPayments.map(p => p.amount);
+    const previousAverage = amounts.reduce((sum, amt) => sum + amt, 0) / amounts.length;
+    const currentAmount = bill.amount;
+    
+    const percentageChange = ((currentAmount - previousAverage) / previousAverage) * 100;
+    
+    // Significant increase (>15%)
+    if (percentageChange > 15) {
+      let recommendation = '';
+      let savingsAmount = 0;
+      
+      if (bill.category === 'utilities') {
+        recommendation = 'Consider reviewing your usage patterns or switching to a more cost-effective plan.';
+        savingsAmount = currentAmount - previousAverage;
+      } else if (bill.category === 'telco-internet') {
+        recommendation = 'Check if there are better plans available or if you can negotiate a lower rate.';
+        savingsAmount = currentAmount * 0.2; // Estimate 20% potential savings
+      } else if (bill.category === 'subscriptions') {
+        recommendation = 'Review if you still need this subscription or if a lower tier would work.';
+        savingsAmount = currentAmount * 0.3; // Estimate 30% potential savings
+      }
+      
+      insights.push({
+        id: `ai-trend-increase-${bill.id}`,
+        type: 'trend',
+        priority: 'high',
+        title: `${bill.category === 'utilities' ? 'Usage' : 'Cost'} Increase Detected`,
+        message: `${bill.name} has increased ${percentageChange.toFixed(0)}% over last 3 months`,
+        naturalLanguage: `📈 Your ${bill.name} ${bill.category === 'utilities' ? 'usage' : 'cost'} has increased ${percentageChange.toFixed(0)}% over the last 3 months (from $${previousAverage.toFixed(2)} to $${currentAmount.toFixed(2)}). ${recommendation}`,
+        actionable: true,
+        actionUrl: '/bills',
+        relatedBillId: bill.id,
+        savingsAmount: savingsAmount > 0 ? savingsAmount : undefined,
+        timestamp: now.toISOString(),
+      });
+    }
+    // Significant decrease (>15%)
+    else if (percentageChange < -15) {
+      insights.push({
+        id: `ai-trend-decrease-${bill.id}`,
+        type: 'trend',
+        priority: 'low',
+        title: `${bill.category === 'utilities' ? 'Usage' : 'Cost'} Decrease`,
+        message: `${bill.name} has decreased ${Math.abs(percentageChange).toFixed(0)}% over last 3 months`,
+        naturalLanguage: `📉 Great news! Your ${bill.name} ${bill.category === 'utilities' ? 'usage' : 'cost'} has decreased ${Math.abs(percentageChange).toFixed(0)}% over the last 3 months (from $${previousAverage.toFixed(2)} to $${currentAmount.toFixed(2)}). Keep up the good work!`,
+        actionable: false,
+        relatedBillId: bill.id,
+        timestamp: now.toISOString(),
+      });
+    }
+  });
+
+  return insights;
+}
+
+// Analyze subscription spending and suggest optimizations
+export function analyzeSubscriptions(bills: Bill[]): AIInsight[] {
+  const insights: AIInsight[] = [];
+  const now = new Date();
+
+  // Group subscription bills
+  const subscriptionBills = bills.filter(b => b.category === 'subscriptions');
+  
+  if (subscriptionBills.length === 0) return insights;
+
+  const totalMonthly = subscriptionBills.reduce((sum, bill) => {
+    // Convert to monthly if needed
+    if (bill.recurrence === 'yearly') {
+      return sum + (bill.amount / 12);
+    }
+    return sum + bill.amount;
+  }, 0);
+
+  // Identify streaming services
+  const streamingKeywords = ['netflix', 'spotify', 'disney', 'hulu', 'prime', 'apple', 'youtube', 'hbo'];
+  const streamingServices = subscriptionBills.filter(bill => 
+    streamingKeywords.some(keyword => bill.name.toLowerCase().includes(keyword))
+  );
+
+  if (streamingServices.length >= 2) {
+    const streamingTotal = streamingServices.reduce((sum, bill) => sum + bill.amount, 0);
+    const potentialSavings = streamingTotal * 0.4; // Estimate 40% savings with family plans
+    
+    insights.push({
+      id: 'ai-savings-streaming',
+      type: 'savings',
+      priority: 'medium',
+      title: 'Streaming Subscription Optimization',
+      message: `Streaming subscriptions cost $${streamingTotal.toFixed(2)}/month`,
+      naturalLanguage: `💰 Your streaming subscriptions (${streamingServices.map(s => s.name).join(', ')}) cost $${streamingTotal.toFixed(2)}/month. You could save up to $${potentialSavings.toFixed(2)}/month by switching to family plans or bundling services.`,
+      actionable: true,
+      actionUrl: '/bills',
+      savingsAmount: potentialSavings,
+      timestamp: now.toISOString(),
+    });
+  }
+
+  // Cloud storage analysis
+  const cloudKeywords = ['icloud', 'google drive', 'dropbox', 'onedrive', 'storage'];
+  const cloudServices = subscriptionBills.filter(bill => 
+    cloudKeywords.some(keyword => bill.name.toLowerCase().includes(keyword))
+  );
+
+  if (cloudServices.length >= 2) {
+    const cloudTotal = cloudServices.reduce((sum, bill) => sum + bill.amount, 0);
+    const potentialSavings = cloudTotal * 0.5; // Estimate 50% savings by consolidating
+    
+    insights.push({
+      id: 'ai-savings-cloud',
+      type: 'savings',
+      priority: 'medium',
+      title: 'Cloud Storage Consolidation',
+      message: `Multiple cloud storage subscriptions detected`,
+      naturalLanguage: `☁️ You're paying for ${cloudServices.length} cloud storage services (${cloudServices.map(s => s.name).join(', ')}) totaling $${cloudTotal.toFixed(2)}/month. Consider consolidating to one service to save up to $${potentialSavings.toFixed(2)}/month.`,
+      actionable: true,
+      actionUrl: '/bills',
+      savingsAmount: potentialSavings,
+      timestamp: now.toISOString(),
+    });
+  }
+
+  // Overall subscription spending insight
+  if (totalMonthly > 100) {
+    insights.push({
+      id: 'ai-trend-subscriptions',
+      type: 'trend',
+      priority: 'medium',
+      title: 'High Subscription Spending',
+      message: `Total subscription spending: $${totalMonthly.toFixed(2)}/month`,
+      naturalLanguage: `📊 You're spending $${totalMonthly.toFixed(2)}/month on ${subscriptionBills.length} subscription${subscriptionBills.length > 1 ? 's' : ''}. Review each one to ensure you're still using them and consider downgrading unused services.`,
+      actionable: true,
+      actionUrl: '/bills',
+      timestamp: now.toISOString(),
+    });
+  }
+
+  return insights;
+}
+
+// Analyze category spending trends
+export function analyzeCategoryTrends(bills: Bill[]): AIInsight[] {
+  const insights: AIInsight[] = [];
+  const now = new Date();
+
+  const categories = ['utilities', 'telco-internet', 'insurance', 'subscriptions', 'credit-loans'];
+
+  categories.forEach(category => {
+    const categoryBills = bills.filter(b => b.category === category);
+    if (categoryBills.length === 0) return;
+
+    const totalMonthly = categoryBills.reduce((sum, bill) => {
+      if (bill.recurrence === 'yearly') {
+        return sum + (bill.amount / 12);
+      }
+      return sum + bill.amount;
+    }, 0);
+
+    // Utilities specific insights
+    if (category === 'utilities' && totalMonthly > 200) {
+      insights.push({
+        id: `ai-trend-${category}`,
+        type: 'trend',
+        priority: 'medium',
+        title: 'High Utility Costs',
+        message: `Utility bills total $${totalMonthly.toFixed(2)}/month`,
+        naturalLanguage: `⚡ Your utility bills (electricity, water, gas) total $${totalMonthly.toFixed(2)}/month. Consider energy-efficient upgrades or reviewing your usage patterns to reduce costs.`,
+        actionable: true,
+        actionUrl: '/bills',
+        savingsAmount: totalMonthly * 0.15, // Estimate 15% potential savings
+        timestamp: now.toISOString(),
+      });
+    }
+
+    // Telco & Internet insights
+    if (category === 'telco-internet' && totalMonthly > 150) {
+      insights.push({
+        id: `ai-trend-${category}`,
+        type: 'trend',
+        priority: 'medium',
+        title: 'High Telco & Internet Costs',
+        message: `Telco & Internet bills total $${totalMonthly.toFixed(2)}/month`,
+        naturalLanguage: `📱 Your telco and internet bills total $${totalMonthly.toFixed(2)}/month. Shop around for better deals or consider bundling services to save up to $${(totalMonthly * 0.25).toFixed(2)}/month.`,
+        actionable: true,
+        actionUrl: '/bills',
+        savingsAmount: totalMonthly * 0.25, // Estimate 25% potential savings
+        timestamp: now.toISOString(),
+      });
+    }
+  });
+
+  return insights;
+}
+
 // Detect unusual bill patterns
 export function detectUnusualPatterns(bills: Bill[]): AIInsight[] {
   const insights: AIInsight[] = [];
@@ -127,7 +350,7 @@ export function detectUnusualPatterns(bills: Bill[]): AIInsight[] {
         priority: 'high',
         title: 'Unusual Bill Amount',
         message: `${bill.name} is ${percentageChange.toFixed(0)}% higher than usual`,
-        naturalLanguage: `I noticed your ${bill.name} bill is unusually high this month at $${currentAmount.toFixed(2)}, which is ${percentageChange.toFixed(0)}% more than your average of $${average.toFixed(2)}. You might want to review this.`,
+        naturalLanguage: `⚠️ I noticed your ${bill.name} bill is unusually high this month at $${currentAmount.toFixed(2)}, which is ${percentageChange.toFixed(0)}% more than your average of $${average.toFixed(2)}. You might want to review this.`,
         actionable: true,
         actionUrl: '/bills',
         relatedBillId: bill.id,
@@ -142,7 +365,7 @@ export function detectUnusualPatterns(bills: Bill[]): AIInsight[] {
         priority: 'low',
         title: 'Lower Bill Amount',
         message: `${bill.name} is ${Math.abs(percentageChange).toFixed(0)}% lower than usual`,
-        naturalLanguage: `Good news! Your ${bill.name} bill is lower this month at $${currentAmount.toFixed(2)}, which is ${Math.abs(percentageChange).toFixed(0)}% less than your average of $${average.toFixed(2)}.`,
+        naturalLanguage: `✅ Good news! Your ${bill.name} bill is lower this month at $${currentAmount.toFixed(2)}, which is ${Math.abs(percentageChange).toFixed(0)}% less than your average of $${average.toFixed(2)}.`,
         actionable: false,
         relatedBillId: bill.id,
         timestamp: now.toISOString(),
@@ -172,7 +395,7 @@ export function predictUpcomingPayments(bills: Bill[]): AIInsight[] {
       priority: 'medium',
       title: 'Upcoming Payments This Week',
       message: `${next7Days.length} bills due in the next 7 days`,
-      naturalLanguage: `You have ${next7Days.length} bill${next7Days.length > 1 ? 's' : ''} coming up this week (${billNames}) totaling $${totalAmount.toFixed(2)}. Make sure you have sufficient funds available.`,
+      naturalLanguage: `💳 You have ${next7Days.length} bill${next7Days.length > 1 ? 's' : ''} coming up this week (${billNames}) totaling $${totalAmount.toFixed(2)}. Make sure you have sufficient funds available.`,
       actionable: true,
       actionUrl: '/bills',
       timestamp: now.toISOString(),
@@ -264,11 +487,14 @@ export function analyzeSpendingPatterns(bills: Bill[]): SpendingPattern[] {
 // Generate all AI insights
 export function generateAllAIInsights(bills: Bill[]): AIInsight[] {
   const reminders = generateNaturalLanguageReminders(bills);
+  const trends = analyzeBillTrends(bills);
+  const subscriptions = analyzeSubscriptions(bills);
+  const categoryTrends = analyzeCategoryTrends(bills);
   const patterns = detectUnusualPatterns(bills);
   const predictions = predictUpcomingPayments(bills);
   const tips = generateSmartTips(bills);
 
-  const allInsights = [...reminders, ...patterns, ...predictions, ...tips];
+  const allInsights = [...reminders, ...trends, ...subscriptions, ...categoryTrends, ...patterns, ...predictions, ...tips];
 
   // Sort by priority
   const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
