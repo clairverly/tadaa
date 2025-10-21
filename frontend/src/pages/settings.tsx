@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, CreditCard, User, Shield, Plus, Edit, Trash2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Bell, CreditCard, User, Shield, Plus, Edit, Trash2, Mail, Lock, Eye, EyeOff, Smartphone, Copy, CheckCircle, QrCode, RefreshCw } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,11 @@ export default function Settings() {
     current: '',
     new: '',
     confirm: '',
+  });
+  const [twoFactorSetup, setTwoFactorSetup] = useState({
+    showSetup: false,
+    verificationCode: '',
+    copiedCode: false,
   });
 
   useEffect(() => {
@@ -160,6 +165,80 @@ export default function Settings() {
     // In a real app, this would verify current password and update
     showSuccess('Password changed successfully');
     setPasswordData({ current: '', new: '', confirm: '' });
+  };
+
+  const handleEnable2FA = () => {
+    if (!profile) return;
+    
+    // Generate mock backup codes
+    const backupCodes = Array.from({ length: 8 }, () => 
+      Math.random().toString(36).substring(2, 8).toUpperCase()
+    );
+
+    const twoFactorAuth = {
+      enabled: false, // Will be enabled after verification
+      secret: 'JBSWY3DPEHPK3PXP', // Mock secret for demo
+      backupCodes,
+      lastVerified: new Date().toISOString(),
+    };
+
+    userStorage.update({ twoFactorAuth });
+    setProfile({ ...profile, twoFactorAuth });
+    setTwoFactorSetup({ ...twoFactorSetup, showSetup: true });
+  };
+
+  const handleVerify2FA = () => {
+    if (!profile || !twoFactorSetup.verificationCode) {
+      showError('Please enter the verification code');
+      return;
+    }
+
+    if (twoFactorSetup.verificationCode.length !== 6) {
+      showError('Verification code must be 6 digits');
+      return;
+    }
+
+    // In a real app, this would verify the code with the server
+    const twoFactorAuth = {
+      ...profile.twoFactorAuth!,
+      enabled: true,
+      lastVerified: new Date().toISOString(),
+    };
+
+    userStorage.update({ twoFactorAuth });
+    setProfile({ ...profile, twoFactorAuth });
+    setTwoFactorSetup({ showSetup: false, verificationCode: '', copiedCode: false });
+    showSuccess('Two-factor authentication enabled successfully!');
+  };
+
+  const handleDisable2FA = () => {
+    if (!profile) return;
+
+    userStorage.update({ twoFactorAuth: { enabled: false } });
+    setProfile({ ...profile, twoFactorAuth: { enabled: false } });
+    showSuccess('Two-factor authentication disabled');
+  };
+
+  const handleCopyBackupCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    showSuccess('Backup code copied to clipboard');
+  };
+
+  const handleRegenerateBackupCodes = () => {
+    if (!profile || !profile.twoFactorAuth) return;
+
+    const backupCodes = Array.from({ length: 8 }, () => 
+      Math.random().toString(36).substring(2, 8).toUpperCase()
+    );
+
+    const twoFactorAuth = {
+      ...profile.twoFactorAuth,
+      backupCodes,
+    };
+
+    userStorage.update({ twoFactorAuth });
+    setProfile({ ...profile, twoFactorAuth });
+    showSuccess('Backup codes regenerated');
   };
 
   const unreadNotifications = notifications.filter(n => !n.isRead);
@@ -451,6 +530,163 @@ export default function Settings() {
 
         {/* Account Tab */}
         <TabsContent value="account" className="space-y-6 mt-6">
+          {/* Two-Factor Authentication */}
+          <Card className="border-2 border-blue-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Smartphone className="h-5 w-5 text-blue-600" />
+                    Two-Factor Authentication (2FA)
+                  </CardTitle>
+                  <CardDescription>Add an extra layer of security to your account</CardDescription>
+                </div>
+                {profile.twoFactorAuth?.enabled && (
+                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Enabled
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!profile.twoFactorAuth?.enabled && !twoFactorSetup.showSetup && (
+                <>
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Shield className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800 text-sm">
+                      <strong>Recommended:</strong> Enable 2FA to protect your account with an additional security code from your authenticator app.
+                    </AlertDescription>
+                  </Alert>
+                  <Button onClick={handleEnable2FA} className="w-full">
+                    <Smartphone className="h-4 w-4 mr-2" />
+                    Enable Two-Factor Authentication
+                  </Button>
+                </>
+              )}
+
+              {twoFactorSetup.showSetup && (
+                <div className="space-y-4">
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <QrCode className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800 text-sm">
+                      <strong>Step 1:</strong> Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+                    </AlertDescription>
+                  </Alert>
+
+                  {/* Mock QR Code */}
+                  <div className="flex justify-center p-6 bg-white border-2 border-gray-200 rounded-lg">
+                    <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <QrCode className="h-24 w-24 text-gray-400" />
+                    </div>
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">Or enter this code manually:</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <code className="px-4 py-2 bg-gray-100 rounded-md font-mono text-sm">
+                        {profile.twoFactorAuth?.secret}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(profile.twoFactorAuth?.secret || '');
+                          setTwoFactorSetup({ ...twoFactorSetup, copiedCode: true });
+                          showSuccess('Secret code copied to clipboard');
+                        }}
+                      >
+                        {twoFactorSetup.copiedCode ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Smartphone className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800 text-sm">
+                      <strong>Step 2:</strong> Enter the 6-digit code from your authenticator app to verify
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="verification-code">Verification Code</Label>
+                    <Input
+                      id="verification-code"
+                      type="text"
+                      maxLength={6}
+                      value={twoFactorSetup.verificationCode}
+                      onChange={(e) => setTwoFactorSetup({ ...twoFactorSetup, verificationCode: e.target.value.replace(/\D/g, '') })}
+                      placeholder="000000"
+                      className="text-center text-2xl tracking-widest font-mono"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setTwoFactorSetup({ showSetup: false, verificationCode: '', copiedCode: false })}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleVerify2FA} className="flex-1">
+                      Verify & Enable
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {profile.twoFactorAuth?.enabled && (
+                <div className="space-y-4">
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800 text-sm">
+                      Two-factor authentication is active. Your account is protected with an additional security layer.
+                    </AlertDescription>
+                  </Alert>
+
+                  {/* Backup Codes */}
+                  <div className="border-t pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-sm">Backup Codes</h4>
+                      <Button variant="outline" size="sm" onClick={handleRegenerateBackupCodes}>
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerate
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Save these codes in a safe place. You can use them to access your account if you lose your phone.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {profile.twoFactorAuth.backupCodes?.map((code, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md border">
+                          <code className="text-xs font-mono">{code}</code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyBackupCode(code)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button variant="destructive" onClick={handleDisable2FA} className="w-full">
+                    Disable Two-Factor Authentication
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Change Password */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -508,6 +744,7 @@ export default function Settings() {
             </CardContent>
           </Card>
 
+          {/* Email Preferences */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -535,6 +772,7 @@ export default function Settings() {
             </CardContent>
           </Card>
 
+          {/* Danger Zone */}
           <Card className="border-red-200">
             <CardHeader>
               <CardTitle className="text-red-600">Danger Zone</CardTitle>

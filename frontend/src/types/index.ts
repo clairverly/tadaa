@@ -101,6 +101,13 @@ export interface UrgentAlert {
   acknowledged: boolean;
 }
 
+export interface TwoFactorAuth {
+  enabled: boolean;
+  secret?: string;
+  backupCodes?: string[];
+  lastVerified?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -113,6 +120,7 @@ export interface UserProfile {
     paymentFailures: boolean;
   };
   purchaseHistory: PurchaseTrend[];
+  twoFactorAuth?: TwoFactorAuth;
 }
 
 export interface DashboardStats {
