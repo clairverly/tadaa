@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Bill, BillCategory } from '@/types';
+import { Bill, BillCategory, BillRecurrence } from '@/types';
 import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess, showError } from '@/utils/toast';
-import { CreditCard, Info, Scan, Mail, Sparkles, Shield, BellOff, Plus, X, Building2, Lock, Eye, EyeOff } from 'lucide-react';
+import { CreditCard, Info, Scan, Mail, Sparkles, Shield, BellOff, Plus, X, Building2, Lock, Eye, EyeOff, Calendar, RefreshCw } from 'lucide-react';
 import { paymentStorage, userStorage } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
 
@@ -26,6 +26,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
   const [formData, setFormData] = useState({
     name: '',
     category: 'utilities' as BillCategory,
+    recurrence: 'monthly' as BillRecurrence,
     autoPayEnabled: false,
     autoPayLimit: '',
     paymentMethodId: '',
@@ -43,6 +44,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       setFormData({
         name: scannedData.name,
         category: scannedData.category,
+        recurrence: scannedData.recurrence || 'monthly',
         autoPayEnabled: false,
         autoPayLimit: '',
         paymentMethodId: '',
@@ -54,6 +56,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       setFormData({
         name: bill.name,
         category: bill.category,
+        recurrence: bill.recurrence,
         autoPayEnabled: bill.autoPayEnabled || false,
         autoPayLimit: bill.autoPayLimit ? bill.autoPayLimit.toString() : '',
         paymentMethodId: bill.paymentMethodId || '',
@@ -66,6 +69,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       setFormData({
         name: '',
         category: defaultCategory || 'utilities',
+        recurrence: 'monthly',
         autoPayEnabled: false,
         autoPayLimit: '',
         paymentMethodId: '',
@@ -136,7 +140,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       amount: bill?.amount || 0, // Placeholder - will be updated via email
       dueDate: bill?.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Placeholder - 30 days from now
       category: formData.category,
-      recurrence: bill?.recurrence || 'monthly', // Default to monthly
+      recurrence: formData.recurrence,
       status: bill?.status || 'upcoming',
       reminderDays: bill?.reminderDays || [7, 3, 1], // Default reminders
       reminderEnabled: formData.autoPayEnabled ? false : (bill?.reminderEnabled ?? true), // Disable reminders if auto-pay enabled
@@ -225,6 +229,43 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               <p className="text-xs text-gray-500">
                 Helps organize your bills by type
               </p>
+            </div>
+
+            {/* Billing Frequency / Recurrence */}
+            <div className="grid gap-2">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 text-gray-500" />
+                <Label htmlFor="recurrence">Billing Frequency *</Label>
+              </div>
+              <Select
+                value={formData.recurrence}
+                onValueChange={(value) => setFormData({ ...formData, recurrence: value as BillRecurrence })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="one-time">One-Time Payment</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="yearly">Yearly / Annually</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                How often this bill occurs
+              </p>
+              
+              <Alert className="bg-blue-50 border-blue-200">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800 text-xs">
+                  <strong>Examples:</strong>
+                  <ul className="list-disc list-inside mt-1 space-y-0.5">
+                    <li><strong>Monthly:</strong> Utilities, rent, subscriptions</li>
+                    <li><strong>Yearly:</strong> Insurance premiums, memberships</li>
+                    <li><strong>One-Time:</strong> Medical bills, repairs</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
             </div>
 
             {/* Service Provider Billing Email Addresses */}
@@ -456,6 +497,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                     {formData.attachmentPassword && (
                       <li>Password-protected PDFs will be automatically unlocked and processed</li>
                     )}
+                    <li>Bill will recur {formData.recurrence === 'one-time' ? 'once' : formData.recurrence}</li>
                   </ol>
                 </AlertDescription>
               </Alert>
