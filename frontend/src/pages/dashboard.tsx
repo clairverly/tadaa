@@ -137,7 +137,7 @@ export default function Dashboard() {
     }
   };
 
-  const upcomingBills = bills.filter(b => b.status === 'upcoming' && isUpcoming(b.dueDate));
+  const upcomingBills = bills.filter(b => b.status === 'upcoming' && isUpcoming(b.dueDate, 30));
   const overdueBills = bills.filter(b => isOverdue(b.dueDate) && b.status !== 'paid');
   const activeErrands = errands.filter(e => e.status !== 'done');
   const upcomingAppointments = appointments.filter(a => isUpcoming(a.date, 14));
@@ -406,77 +406,6 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-transparent rounded-full -mr-16 -mt-16"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Upcoming Bills</CardTitle>
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="h-5 w-5 text-blue-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{upcomingBills.length}</div>
-            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              Next 7 days
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-500/20 to-transparent rounded-full -mr-16 -mt-16"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Overdue Bills</CardTitle>
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">{overdueBills.length}</div>
-            <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              Needs attention
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/20 to-transparent rounded-full -mr-16 -mt-16"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Active Errands</CardTitle>
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <ShoppingBag className="h-5 w-5 text-purple-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{activeErrands.length}</div>
-            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              In progress
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/20 to-transparent rounded-full -mr-16 -mt-16"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Appointments</CardTitle>
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Calendar className="h-5 w-5 text-green-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{upcomingAppointments.length}</div>
-            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Next 2 weeks
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Overdue Bills Alert */}
       {overdueBills.length > 0 && (
         <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg">
@@ -529,7 +458,7 @@ export default function Dashboard() {
               </div>
               <CardTitle>Upcoming Bills</CardTitle>
             </div>
-            <CardDescription>Bills due in the next 7 days</CardDescription>
+            <CardDescription>Bills due in the next 30 days</CardDescription>
           </CardHeader>
           <CardContent>
             {upcomingBills.length === 0 ? (
@@ -551,6 +480,11 @@ export default function Dashboard() {
                     <p className="font-semibold text-blue-600">${bill.amount.toFixed(2)}</p>
                   </div>
                 ))}
+                {upcomingBills.length > 3 && (
+                  <p className="text-xs text-center text-gray-500 pt-2">
+                    +{upcomingBills.length - 3} more bill{upcomingBills.length - 3 > 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
             )}
             <Link to="/bills">
