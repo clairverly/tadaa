@@ -249,6 +249,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="yearly">Yearly / Annually</SelectItem>
+                  <SelectItem value="as-billed">As Billed (Variable/Irregular)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
@@ -263,6 +264,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                     <li><strong>Monthly:</strong> Utilities, rent, subscriptions</li>
                     <li><strong>Yearly:</strong> Insurance premiums, memberships</li>
                     <li><strong>One-Time:</strong> Medical bills, repairs</li>
+                    <li><strong>As Billed:</strong> Credit cards, variable utilities, medical services (amounts and timing vary)</li>
                   </ul>
                 </AlertDescription>
               </Alert>
@@ -497,7 +499,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                     {formData.attachmentPassword && (
                       <li>Password-protected PDFs will be automatically unlocked and processed</li>
                     )}
-                    <li>Bill will recur {formData.recurrence === 'one-time' ? 'once' : formData.recurrence}</li>
+                    <li>Bill will recur {formData.recurrence === 'one-time' ? 'once' : formData.recurrence === 'as-billed' ? 'as billed' : formData.recurrence}</li>
                   </ol>
                 </AlertDescription>
               </Alert>

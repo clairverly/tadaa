@@ -1,5 +1,5 @@
 export type BillStatus = 'upcoming' | 'overdue' | 'paid' | 'payment-failed';
-export type BillRecurrence = 'one-time' | 'weekly' | 'monthly' | 'yearly';
+export type BillRecurrence = 'one-time' | 'weekly' | 'monthly' | 'yearly' | 'as-billed';
 export type BillCategory = 'utilities' | 'telco-internet' | 'insurance' | 'subscriptions' | 'credit-loans' | 'general';
 
 export interface Bill {
