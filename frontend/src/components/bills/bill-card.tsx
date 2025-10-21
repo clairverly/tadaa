@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash2, Zap, Wifi, Shield, Play, CreditCard, DollarSign, Bell, BellOff, History, TrendingUp, AlertCircle, Building2 } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, Zap, Wifi, Shield, Play, CreditCard, DollarSign, Bell, BellOff, History, TrendingUp, AlertCircle, Building2, Lock } from 'lucide-react';
 import { formatDate, getDaysUntil, isOverdue, isUpcoming } from '@/lib/utils/date';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
@@ -72,6 +72,9 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
   // Check if bill exceeds auto-pay limit
   const exceedsLimit = bill.autoPayEnabled && bill.autoPayLimit && bill.amount > bill.autoPayLimit;
 
+  // Mask password for display
+  const maskedPassword = bill.attachmentPassword ? '•'.repeat(bill.attachmentPassword.length) : '';
+
   return (
     <Card className={cn(
       'transition-all hover:shadow-md border-2',
@@ -123,6 +126,12 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
                     <Badge variant="outline" className="text-xs flex items-center gap-1 text-purple-700 bg-purple-50 border-purple-200">
                       <Building2 className="h-3 w-3" />
                       {bill.providerEmails.length} email{bill.providerEmails.length > 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                  {bill.attachmentPassword && (
+                    <Badge variant="outline" className="text-xs flex items-center gap-1 text-orange-700 bg-orange-50 border-orange-200">
+                      <Lock className="h-3 w-3" />
+                      PDF Password
                     </Badge>
                   )}
                 </div>
@@ -181,6 +190,25 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
                 </div>
                 <p className="text-xs text-purple-600 mt-2 pl-6">
                   Forward bills from these addresses to auto-update amounts
+                </p>
+              </div>
+            )}
+
+            {/* Attachment Password */}
+            {bill.attachmentPassword && (
+              <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="h-4 w-4 text-orange-600" />
+                  <p className="text-xs font-medium text-orange-900">PDF Attachment Password:</p>
+                </div>
+                <div className="flex items-center justify-between pl-6">
+                  <p className="text-xs text-orange-700 font-mono">{maskedPassword}</p>
+                  <Badge variant="outline" className="text-xs text-orange-700 border-orange-200">
+                    Saved
+                  </Badge>
+                </div>
+                <p className="text-xs text-orange-600 mt-2 pl-6">
+                  Password will be used to unlock PDF attachments automatically
                 </p>
               </div>
             )}

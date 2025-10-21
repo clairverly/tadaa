@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bill, BillCategory } from '@/types';
 import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess, showError } from '@/utils/toast';
-import { CreditCard, Info, Scan, Mail, Sparkles, Shield, BellOff, Plus, X, Building2 } from 'lucide-react';
+import { CreditCard, Info, Scan, Mail, Sparkles, Shield, BellOff, Plus, X, Building2, Lock, Eye, EyeOff } from 'lucide-react';
 import { paymentStorage, userStorage } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
 
@@ -31,8 +31,10 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
     paymentMethodId: '',
     providerEmails: [] as string[],
     emailInput: '',
+    attachmentPassword: '',
   });
 
+  const [showPassword, setShowPassword] = useState(false);
   const paymentMethods = paymentStorage.getAll();
 
   useEffect(() => {
@@ -46,6 +48,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
         paymentMethodId: '',
         providerEmails: [],
         emailInput: '',
+        attachmentPassword: '',
       });
     } else if (bill) {
       setFormData({
@@ -56,6 +59,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
         paymentMethodId: bill.paymentMethodId || '',
         providerEmails: bill.providerEmails || [],
         emailInput: '',
+        attachmentPassword: bill.attachmentPassword || '',
       });
     } else {
       // New bill - use default category if provided
@@ -67,6 +71,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
         paymentMethodId: '',
         providerEmails: [],
         emailInput: '',
+        attachmentPassword: '',
       });
     }
   }, [bill, scannedData, defaultCategory, open]);
@@ -136,6 +141,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       reminderDays: bill?.reminderDays || [7, 3, 1], // Default reminders
       reminderEnabled: formData.autoPayEnabled ? false : (bill?.reminderEnabled ?? true), // Disable reminders if auto-pay enabled
       providerEmails: formData.providerEmails,
+      attachmentPassword: formData.attachmentPassword || undefined,
       autoPayEnabled: formData.autoPayEnabled,
       autoPayLimit: formData.autoPayEnabled && formData.autoPayLimit ? parseFloat(formData.autoPayLimit) : undefined,
       paymentMethodId: formData.autoPayEnabled ? formData.paymentMethodId : undefined,
@@ -303,6 +309,54 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               )}
             </div>
 
+            {/* Attachment Password */}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-gray-500" />
+                <Label htmlFor="attachmentPassword">PDF Attachment Password (Optional)</Label>
+              </div>
+              
+              <p className="text-xs text-gray-600">
+                If this provider sends password-protected PDF bills, enter the password here
+              </p>
+
+              <div className="relative">
+                <Input
+                  id="attachmentPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.attachmentPassword}
+                  onChange={(e) => setFormData({ ...formData, attachmentPassword: e.target.value })}
+                  placeholder="Enter PDF password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              <Alert className="bg-blue-50 border-blue-200">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800 text-xs">
+                  <strong>Common use cases:</strong> Bank statements, credit card bills, and insurance documents often come as password-protected PDFs. The password is usually your date of birth, last 4 digits of account number, or a custom password set by the provider.
+                </AlertDescription>
+              </Alert>
+
+              <Alert className="bg-amber-50 border-amber-200">
+                <Shield className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800 text-xs">
+                  <strong>Security Note:</strong> In demo mode, passwords are stored locally on your device. In production, passwords would be encrypted and stored securely.
+                </AlertDescription>
+              </Alert>
+            </div>
+
             {/* Auto-Pay Settings */}
             <div className="border-t pt-4 space-y-4">
               <div className="flex items-center justify-between">
@@ -398,6 +452,9 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                     <li>{formData.autoPayEnabled ? 'Bills will be paid automatically' : 'Get notified when bills arrive with quick payment options'}</li>
                     {formData.providerEmails.length > 0 && (
                       <li>System will recognize emails from: {formData.providerEmails.join(', ')}</li>
+                    )}
+                    {formData.attachmentPassword && (
+                      <li>Password-protected PDFs will be automatically unlocked and processed</li>
                     )}
                   </ol>
                 </AlertDescription>
