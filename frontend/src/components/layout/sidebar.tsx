@@ -1,4 +1,4 @@
-import { Home, FileText, ShoppingBag, Calendar, AlertCircle, CreditCard, Bell, User, Package } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Calendar, AlertCircle, Package, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -12,10 +12,8 @@ const navigation = [
   { name: 'Errands', href: '/errands', icon: ShoppingBag },
   { name: 'Appointments', href: '/appointments', icon: Calendar },
   { name: 'Urgent Help', href: '/urgent-help', icon: AlertCircle },
-  { name: 'Payments', href: '/payments', icon: CreditCard },
   { name: 'Subscriptions', href: '/subscriptions', icon: Package },
-  { name: 'Notifications', href: '/notifications', icon: Bell, showBadge: true },
-  { name: 'Profile', href: '/profile', icon: User },
+  { name: 'Settings', href: '/settings', icon: Settings, showBadge: true },
 ];
 
 export function Sidebar() {
@@ -58,7 +56,13 @@ export function Sidebar() {
           <TooltipProvider delayDuration={200}>
             <nav className="flex items-center gap-1">
               {navigation.map((item) => {
-                const isActive = location.pathname === item.href;
+                const isActive = location.pathname === item.href || 
+                  (item.href === '/settings' && (
+                    location.pathname.startsWith('/settings') ||
+                    location.pathname === '/notifications' ||
+                    location.pathname === '/payments' ||
+                    location.pathname === '/profile'
+                  ));
                 return (
                   <Tooltip key={item.name}>
                     <TooltipTrigger asChild>
