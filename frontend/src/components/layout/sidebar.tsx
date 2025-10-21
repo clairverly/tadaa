@@ -13,7 +13,7 @@ const navigation = [
   { name: 'Appointments', href: '/appointments', icon: Calendar },
   { name: 'Urgent Help', href: '/urgent-help', icon: AlertCircle },
   { name: 'Payments', href: '/payments', icon: CreditCard },
-  { name: 'Subscriptions', href: '/subscriptions', icon: Package, badge: 'Soon' },
+  { name: 'Subscriptions', href: '/subscriptions', icon: Package },
   { name: 'Notifications', href: '/notifications', icon: Bell, showBadge: true },
   { name: 'Profile', href: '/profile', icon: User },
 ];
@@ -78,11 +78,6 @@ export function Sidebar() {
                             {unreadCount > 99 ? '99+' : unreadCount}
                           </span>
                         )}
-                        {item.badge && (
-                          <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                            {item.badge}
-                          </span>
-                        )}
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent 
@@ -90,9 +85,6 @@ export function Sidebar() {
                       className="bg-gray-800 text-white border-gray-700"
                     >
                       <p className="font-medium">{item.name}</p>
-                      {item.badge && (
-                        <p className="text-xs text-gray-400 mt-0.5">Coming Soon</p>
-                      )}
                       {item.showBadge && unreadCount > 0 && (
                         <p className="text-xs text-red-400 mt-0.5">
                           {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
