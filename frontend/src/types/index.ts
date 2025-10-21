@@ -1,6 +1,6 @@
 export type BillStatus = 'upcoming' | 'overdue' | 'paid' | 'payment-failed';
 export type BillRecurrence = 'one-time' | 'weekly' | 'monthly' | 'yearly';
-export type BillCategory = 'utilities' | 'rent' | 'insurance' | 'subscription' | 'credit-card' | 'other';
+export type BillCategory = 'utilities' | 'telco-internet' | 'insurance' | 'subscriptions' | 'credit-loans' | 'general';
 
 export interface Bill {
   id: string;

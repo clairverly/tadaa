@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash2, Zap, Home, Shield, CreditCard, Wifi, DollarSign, Bell, BellOff, History, TrendingUp, AlertCircle } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, Zap, Wifi, Shield, Play, CreditCard, DollarSign, Bell, BellOff, History, TrendingUp, AlertCircle } from 'lucide-react';
 import { formatDate, getDaysUntil, isOverdue, isUpcoming } from '@/lib/utils/date';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
@@ -16,20 +16,20 @@ interface BillCardProps {
 
 const categoryIcons = {
   utilities: Zap,
-  rent: Home,
+  'telco-internet': Wifi,
   insurance: Shield,
-  'credit-card': CreditCard,
-  subscription: Wifi,
-  other: DollarSign,
+  subscriptions: Play,
+  'credit-loans': CreditCard,
+  general: DollarSign,
 };
 
 const categoryStyles = {
   utilities: { bg: 'bg-amber-50', icon: 'text-amber-700', border: 'border-amber-200' },
-  rent: { bg: 'bg-emerald-50', icon: 'text-emerald-700', border: 'border-emerald-200' },
+  'telco-internet': { bg: 'bg-blue-50', icon: 'text-blue-700', border: 'border-blue-200' },
   insurance: { bg: 'bg-purple-50', icon: 'text-purple-700', border: 'border-purple-200' },
-  'credit-card': { bg: 'bg-blue-50', icon: 'text-blue-700', border: 'border-blue-200' },
-  subscription: { bg: 'bg-cyan-50', icon: 'text-cyan-700', border: 'border-cyan-200' },
-  other: { bg: 'bg-gray-50', icon: 'text-gray-700', border: 'border-gray-200' },
+  subscriptions: { bg: 'bg-pink-50', icon: 'text-pink-700', border: 'border-pink-200' },
+  'credit-loans': { bg: 'bg-indigo-50', icon: 'text-indigo-700', border: 'border-indigo-200' },
+  general: { bg: 'bg-gray-50', icon: 'text-gray-700', border: 'border-gray-200' },
 };
 
 export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
@@ -38,7 +38,7 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
   const upcoming = isUpcoming(bill.dueDate, 30);
   
   const CategoryIcon = categoryIcons[bill.category] || DollarSign;
-  const styles = categoryStyles[bill.category] || categoryStyles.other;
+  const styles = categoryStyles[bill.category] || categoryStyles.general;
 
   const handleSendReminder = () => {
     showSuccess(`Reminder sent for ${bill.name}`);

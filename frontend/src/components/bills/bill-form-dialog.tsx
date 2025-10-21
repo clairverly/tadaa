@@ -166,12 +166,12 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="utilities">Utilities</SelectItem>
-                  <SelectItem value="rent">Rent & Housing</SelectItem>
-                  <SelectItem value="insurance">Insurance</SelectItem>
-                  <SelectItem value="subscription">Subscriptions</SelectItem>
-                  <SelectItem value="credit-card">Credit Cards</SelectItem>
-                  <SelectItem value="other">General</SelectItem>
+                  <SelectItem value="utilities">Utilities (Electricity, Water, Gas)</SelectItem>
+                  <SelectItem value="telco-internet">Telco & Internet</SelectItem>
+                  <SelectItem value="insurance">Insurance Premiums</SelectItem>
+                  <SelectItem value="subscriptions">Subscriptions (Netflix, Spotify, etc.)</SelectItem>
+                  <SelectItem value="credit-loans">Credit Cards & Loans</SelectItem>
+                  <SelectItem value="general">General</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
