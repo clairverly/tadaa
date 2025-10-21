@@ -12,6 +12,7 @@ export interface Bill {
   status: BillStatus;
   reminderDays: number[];
   reminderEnabled: boolean;
+  notificationEmails: string[];
   paymentHistory: PaymentRecord[];
   autoPayEnabled: boolean;
   autoPayLimit?: number;

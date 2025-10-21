@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash2, Zap, Wifi, Shield, Play, CreditCard, DollarSign, Bell, BellOff, History, TrendingUp, AlertCircle } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, Zap, Wifi, Shield, Play, CreditCard, DollarSign, Bell, BellOff, History, TrendingUp, AlertCircle, Mail } from 'lucide-react';
 import { formatDate, getDaysUntil, isOverdue, isUpcoming } from '@/lib/utils/date';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
@@ -119,6 +119,12 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
                       )}
                     </>
                   )}
+                  {bill.notificationEmails && bill.notificationEmails.length > 0 && (
+                    <Badge variant="outline" className="text-xs flex items-center gap-1 text-blue-700 bg-blue-50 border-blue-200">
+                      <Mail className="h-3 w-3" />
+                      {bill.notificationEmails.length} recipient{bill.notificationEmails.length > 1 ? 's' : ''}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
@@ -160,6 +166,21 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
               <span className="text-sm text-gray-600">Due Date</span>
               <span className="font-medium text-gray-900">{formatDate(bill.dueDate)}</span>
             </div>
+
+            {/* Email Recipients */}
+            {bill.notificationEmails && bill.notificationEmails.length > 0 && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Mail className="h-4 w-4 text-blue-600" />
+                  <p className="text-xs font-medium text-blue-900">Email Notifications:</p>
+                </div>
+                <div className="space-y-1">
+                  {bill.notificationEmails.map((email, index) => (
+                    <p key={index} className="text-xs text-blue-700 pl-6">• {email}</p>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Auto-Pay Limit Warning */}
             {exceedsLimit && (
