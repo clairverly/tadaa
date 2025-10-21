@@ -1,22 +1,37 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, ShoppingBag, Calendar, AlertTriangle, Plus, TrendingUp, Clock, CheckCircle2, Sparkles } from 'lucide-react';
+import { FileText, ShoppingBag, Calendar, AlertTriangle, Plus, TrendingUp, Clock, CheckCircle2, Sparkles, Bell, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { AIInsightsCard } from '@/components/ai-assistant/ai-insights-card';
-import { billStorage, errandStorage, appointmentStorage } from '@/lib/storage';
+import { billStorage, errandStorage, appointmentStorage, notificationStorage, paymentStorage } from '@/lib/storage';
 import { isOverdue, isUpcoming, formatDate, getDaysUntil } from '@/lib/utils/date';
 import { generateAllAIInsights } from '@/lib/ai-insights';
+import { generateAllNotifications } from '@/lib/notifications';
 import { exportAllBillsToCalendar } from '@/lib/calendar-integration';
-import { Bill, Errand, Appointment } from '@/types';
+import { Bill, Errand, Appointment, Notification } from '@/types';
 import { showSuccess } from '@/utils/toast';
+import { useNavigate } from 'react-router-dom';
+
+interface SpendingAnalytics {
+  totalMonthly: number;
+  totalYearly: number;
+  categoryBreakdown: Array<{ category: string; amount: number; percentage: number }>;
+  monthOverMonth: number;
+  trend: 'increasing' | 'decreasing' | 'stable';
+  topCategories: Array<{ category: string; amount: number }>;
+}
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [bills, setBills] = useState<Bill[]>([]);
   const [errands, setErrands] = useState<Errand[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [aiInsights, setAiInsights] = useState<any[]>([]);
+  const [spendingAnalytics, setSpendingAnalytics] = useState<SpendingAnalytics | null>(null);
 
   useEffect(() => {
     loadData();
@@ -31,6 +46,79 @@ export default function Dashboard() {
     // Generate AI insights
     const insights = generateAllAIInsights(allBills);
     setAiInsights(insights);
+
+    // Generate notifications
+    const paymentMethods = paymentStorage.getAll();
+    const allNotifications = generateAllNotifications(
+      allBills,
+      appointmentStorage.getAll(),
+      errandStorage.getAll(),
+      paymentMethods
+    );
+    
+    // Merge with stored read states
+    const stored = notificationStorage.getAll();
+    const storedMap = new Map(stored.map(n => [n.id, n.isRead]));
+    const merged = allNotifications.map(n => ({
+      ...n,
+      isRead: storedMap.get(n.id) || false,
+    }));
+    
+    setNotifications(merged);
+
+    // Calculate spending analytics
+    calculateSpendingAnalytics(allBills);
+  };
+
+  const calculateSpendingAnalytics = (bills: Bill[]) => {
+    // Calculate total monthly spending
+    const monthlyBills = bills.filter(b => b.recurrence === 'monthly' || b.recurrence === 'as-billed');
+    const yearlyBills = bills.filter(b => b.recurrence === 'yearly');
+    
+    const totalMonthly = monthlyBills.reduce((sum, bill) => sum + bill.amount, 0);
+    const totalYearly = yearlyBills.reduce((sum, bill) => sum + bill.amount, 0);
+    const yearlyAsMonthly = totalYearly / 12;
+    const combinedMonthly = totalMonthly + yearlyAsMonthly;
+
+    // Category breakdown
+    const categoryMap = new Map<string, number>();
+    bills.forEach(bill => {
+      const amount = bill.recurrence === 'yearly' ? bill.amount / 12 : bill.amount;
+      const current = categoryMap.get(bill.category) || 0;
+      categoryMap.set(bill.category, current + amount);
+    });
+
+    const categoryBreakdown = Array.from(categoryMap.entries())
+      .map(([category, amount]) => ({
+        category,
+        amount,
+        percentage: (amount / combinedMonthly) * 100,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    // Month-over-month comparison (simplified - using payment history)
+    const recentPayments = bills.flatMap(b => b.paymentHistory.slice(-2));
+    const lastMonthTotal = recentPayments.slice(0, recentPayments.length / 2)
+      .reduce((sum, p) => sum + p.amount, 0);
+    const thisMonthTotal = recentPayments.slice(recentPayments.length / 2)
+      .reduce((sum, p) => sum + p.amount, 0);
+    
+    const monthOverMonth = lastMonthTotal > 0 
+      ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 
+      : 0;
+
+    const trend = monthOverMonth > 5 ? 'increasing' : monthOverMonth < -5 ? 'decreasing' : 'stable';
+
+    const topCategories = categoryBreakdown.slice(0, 3);
+
+    setSpendingAnalytics({
+      totalMonthly: combinedMonthly,
+      totalYearly: totalYearly,
+      categoryBreakdown,
+      monthOverMonth,
+      trend,
+      topCategories,
+    });
   };
 
   const handleExportToCalendar = () => {
@@ -38,10 +126,46 @@ export default function Dashboard() {
     showSuccess('Calendar file downloaded! Import it to your calendar app.');
   };
 
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.isRead) {
+      notificationStorage.markAsRead(notification.id);
+      loadData();
+    }
+    if (notification.actionUrl) {
+      navigate(notification.actionUrl);
+    }
+  };
+
   const upcomingBills = bills.filter(b => b.status === 'upcoming' && isUpcoming(b.dueDate));
   const overdueBills = bills.filter(b => isOverdue(b.dueDate) && b.status !== 'paid');
   const activeErrands = errands.filter(e => e.status !== 'done');
   const upcomingAppointments = appointments.filter(a => isUpcoming(a.date, 14));
+  const unreadNotifications = notifications.filter(n => !n.isRead);
+  const urgentNotifications = notifications.filter(n => !n.isRead && (n.priority === 'urgent' || n.priority === 'high')).slice(0, 3);
+
+  const getTrendIcon = (trend: string) => {
+    if (trend === 'increasing') return <ArrowUpRight className="h-4 w-4 text-red-600" />;
+    if (trend === 'decreasing') return <ArrowDownRight className="h-4 w-4 text-green-600" />;
+    return <Minus className="h-4 w-4 text-gray-600" />;
+  };
+
+  const getTrendColor = (trend: string) => {
+    if (trend === 'increasing') return 'text-red-600';
+    if (trend === 'decreasing') return 'text-green-600';
+    return 'text-gray-600';
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const icons: Record<string, any> = {
+      utilities: '⚡',
+      'telco-internet': '📡',
+      insurance: '🛡️',
+      subscriptions: '▶️',
+      'credit-loans': '💳',
+      general: '💰',
+    };
+    return icons[category] || '💰';
+  };
 
   return (
     <div className="space-y-8">
@@ -88,6 +212,190 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Urgent Notifications */}
+      {urgentNotifications.length > 0 && (
+        <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-red-800 flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <Bell className="h-6 w-6 text-red-600" />
+                </div>
+                <span>Urgent Notifications</span>
+              </CardTitle>
+              <Badge className="bg-red-600 text-white">
+                {unreadNotifications.length} unread
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {urgentNotifications.map(notification => (
+                <div
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
+                  className="flex items-start gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
+                >
+                  <div className={`p-2 rounded-lg ${
+                    notification.priority === 'urgent' ? 'bg-red-100' : 'bg-orange-100'
+                  }`}>
+                    <AlertTriangle className={`h-5 w-5 ${
+                      notification.priority === 'urgent' ? 'text-red-600' : 'text-orange-600'
+                    }`} />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 mb-1">{notification.title}</h4>
+                    <p className="text-sm text-gray-600">{notification.message}</p>
+                  </div>
+                  <Badge variant={notification.priority === 'urgent' ? 'destructive' : 'default'}>
+                    {notification.priority}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+            <Link to="/notifications">
+              <Button className="w-full mt-4" variant="outline">
+                View All Notifications ({notifications.length})
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Spending Analytics */}
+      {spendingAnalytics && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Monthly Spending Overview */}
+          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-purple-600" />
+                Monthly Spending
+              </CardTitle>
+              <CardDescription>Your average monthly expenses</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-4xl font-bold text-gray-900">
+                      ${spendingAnalytics.totalMonthly.toFixed(0)}
+                    </span>
+                    <span className="text-sm text-gray-500">/month</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getTrendIcon(spendingAnalytics.trend)}
+                    <span className={`text-sm font-medium ${getTrendColor(spendingAnalytics.trend)}`}>
+                      {Math.abs(spendingAnalytics.monthOverMonth).toFixed(1)}% vs last month
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-gray-600 mb-3">Top Categories:</p>
+                  <div className="space-y-3">
+                    {spendingAnalytics.topCategories.map((cat, index) => (
+                      <div key={cat.category}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <span>{getCategoryIcon(cat.category)}</span>
+                            {cat.category.replace('-', ' ')}
+                          </span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            ${cat.amount.toFixed(0)}
+                          </span>
+                        </div>
+                        <Progress 
+                          value={cat.percentage} 
+                          className="h-2"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {spendingAnalytics.totalYearly > 0 && (
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Annual bills (prorated)</span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        ${(spendingAnalytics.totalYearly / 12).toFixed(0)}/mo
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Total yearly: ${spendingAnalytics.totalYearly.toFixed(0)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Spending Trends */}
+          <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+                Spending Insights
+              </CardTitle>
+              <CardDescription>AI-powered analysis</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {spendingAnalytics.trend === 'increasing' && (
+                  <Alert className="bg-amber-50 border-amber-200">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800 text-sm">
+                      <strong>Spending Increase Detected:</strong> Your bills have increased by {Math.abs(spendingAnalytics.monthOverMonth).toFixed(1)}% compared to last month. Review your bills to identify the cause.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {spendingAnalytics.trend === 'decreasing' && (
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800 text-sm">
+                      <strong>Great News!</strong> Your spending decreased by {Math.abs(spendingAnalytics.monthOverMonth).toFixed(1)}% compared to last month. Keep up the good work!
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {spendingAnalytics.trend === 'stable' && (
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800 text-sm">
+                      <strong>Stable Spending:</strong> Your bills are consistent with last month. Your budget is on track!
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-3 pt-2">
+                  <h4 className="font-semibold text-sm text-gray-700">Category Breakdown:</h4>
+                  {spendingAnalytics.categoryBreakdown.map((cat) => (
+                    <div key={cat.category} className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{getCategoryIcon(cat.category)}</span>
+                        <span className="text-sm font-medium text-gray-700 capitalize">
+                          {cat.category.replace('-', ' ')}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-gray-900">
+                          ${cat.amount.toFixed(0)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {cat.percentage.toFixed(0)}%
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* AI Insights Section */}
       {aiInsights.length > 0 && (
