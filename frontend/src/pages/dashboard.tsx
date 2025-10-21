@@ -4,23 +4,38 @@ import { FileText, ShoppingBag, Calendar, AlertTriangle, Plus, TrendingUp, Clock
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AIInsightsCard } from '@/components/ai-assistant/ai-insights-card';
 import { billStorage, errandStorage, appointmentStorage } from '@/lib/storage';
 import { isOverdue, isUpcoming, formatDate, getDaysUntil } from '@/lib/utils/date';
+import { generateAllAIInsights } from '@/lib/ai-insights';
+import { exportAllBillsToCalendar } from '@/lib/calendar-integration';
 import { Bill, Errand, Appointment } from '@/types';
+import { showSuccess } from '@/utils/toast';
 
 export default function Dashboard() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [errands, setErrands] = useState<Errand[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [aiInsights, setAiInsights] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = () => {
-    setBills(billStorage.getAll());
+    const allBills = billStorage.getAll();
+    setBills(allBills);
     setErrands(errandStorage.getAll());
     setAppointments(appointmentStorage.getAll());
+    
+    // Generate AI insights
+    const insights = generateAllAIInsights(allBills);
+    setAiInsights(insights);
+  };
+
+  const handleExportToCalendar = () => {
+    exportAllBillsToCalendar(bills);
+    showSuccess('Calendar file downloaded! Import it to your calendar app.');
   };
 
   const upcomingBills = bills.filter(b => b.status === 'upcoming' && isUpcoming(b.dueDate));
@@ -73,6 +88,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* AI Insights Section */}
+      {aiInsights.length > 0 && (
+        <AIInsightsCard 
+          insights={aiInsights} 
+          onExportToCalendar={handleExportToCalendar}
+        />
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
