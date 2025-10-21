@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bill, BillCategory } from '@/types';
 import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess, showError } from '@/utils/toast';
-import { CreditCard, Info, Scan, Mail, Sparkles, Shield, BellOff, Plus, X } from 'lucide-react';
+import { CreditCard, Info, Scan, Mail, Sparkles, Shield, BellOff, Plus, X, Building2 } from 'lucide-react';
 import { paymentStorage, userStorage } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
 
@@ -29,12 +29,11 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
     autoPayEnabled: false,
     autoPayLimit: '',
     paymentMethodId: '',
-    notificationEmails: [] as string[],
+    providerEmails: [] as string[],
     emailInput: '',
   });
 
   const paymentMethods = paymentStorage.getAll();
-  const userProfile = userStorage.get();
 
   useEffect(() => {
     if (scannedData) {
@@ -45,7 +44,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
         autoPayEnabled: false,
         autoPayLimit: '',
         paymentMethodId: '',
-        notificationEmails: userProfile?.email ? [userProfile.email] : [],
+        providerEmails: [],
         emailInput: '',
       });
     } else if (bill) {
@@ -55,22 +54,22 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
         autoPayEnabled: bill.autoPayEnabled || false,
         autoPayLimit: bill.autoPayLimit ? bill.autoPayLimit.toString() : '',
         paymentMethodId: bill.paymentMethodId || '',
-        notificationEmails: bill.notificationEmails || [],
+        providerEmails: bill.providerEmails || [],
         emailInput: '',
       });
     } else {
-      // New bill - use default category if provided, add user email by default
+      // New bill - use default category if provided
       setFormData({
         name: '',
         category: defaultCategory || 'utilities',
         autoPayEnabled: false,
         autoPayLimit: '',
         paymentMethodId: '',
-        notificationEmails: userProfile?.email ? [userProfile.email] : [],
+        providerEmails: [],
         emailInput: '',
       });
     }
-  }, [bill, scannedData, defaultCategory, open, userProfile]);
+  }, [bill, scannedData, defaultCategory, open]);
 
   const handleAddEmail = () => {
     const email = formData.emailInput.trim();
@@ -85,14 +84,14 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
     }
     
     // Check for duplicates
-    if (formData.notificationEmails.includes(email)) {
+    if (formData.providerEmails.includes(email)) {
       showError('This email is already added');
       return;
     }
     
     setFormData({
       ...formData,
-      notificationEmails: [...formData.notificationEmails, email],
+      providerEmails: [...formData.providerEmails, email],
       emailInput: '',
     });
   };
@@ -100,7 +99,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
   const handleRemoveEmail = (emailToRemove: string) => {
     setFormData({
       ...formData,
-      notificationEmails: formData.notificationEmails.filter(e => e !== emailToRemove),
+      providerEmails: formData.providerEmails.filter(e => e !== emailToRemove),
     });
   };
 
@@ -136,7 +135,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       status: bill?.status || 'upcoming',
       reminderDays: bill?.reminderDays || [7, 3, 1], // Default reminders
       reminderEnabled: formData.autoPayEnabled ? false : (bill?.reminderEnabled ?? true), // Disable reminders if auto-pay enabled
-      notificationEmails: formData.notificationEmails,
+      providerEmails: formData.providerEmails,
       autoPayEnabled: formData.autoPayEnabled,
       autoPayLimit: formData.autoPayEnabled && formData.autoPayLimit ? parseFloat(formData.autoPayLimit) : undefined,
       paymentMethodId: formData.autoPayEnabled ? formData.paymentMethodId : undefined,
@@ -177,7 +176,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               <div className="flex items-start gap-2">
                 <Sparkles className="h-4 w-4 flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong>Email-First Workflow:</strong> Just add the biller name and category. When you forward bill emails, we'll automatically update amounts, due dates, and set up smart reminders.
+                  <strong>Email-First Workflow:</strong> Add the biller name and their billing email addresses. When you forward bills from these addresses, we'll automatically update amounts, due dates, and payment details.
                 </div>
               </div>
             </AlertDescription>
@@ -222,15 +221,15 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               </p>
             </div>
 
-            {/* Email Notification Recipients */}
+            {/* Service Provider Billing Email Addresses */}
             <div className="border-t pt-4 space-y-3">
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-gray-500" />
-                <Label>Email Notifications (Optional)</Label>
+                <Building2 className="h-4 w-4 text-gray-500" />
+                <Label>Service Provider Billing Emails (Recommended)</Label>
               </div>
               
               <p className="text-xs text-gray-600">
-                Add email addresses to receive alerts and reminders for this bill
+                Add the email addresses that send bills from this provider (e.g., bills@electric-company.com, noreply@provider.com)
               </p>
 
               {/* Email Input */}
@@ -245,7 +244,7 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                       handleAddEmail();
                     }
                   }}
-                  placeholder="email@example.com"
+                  placeholder="bills@provider.com"
                   className="flex-1"
                 />
                 <Button
@@ -260,19 +259,19 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               </div>
 
               {/* Email List */}
-              {formData.notificationEmails.length > 0 && (
+              {formData.providerEmails.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-gray-700">
-                    Recipients ({formData.notificationEmails.length}):
+                    Provider Email Addresses ({formData.providerEmails.length}):
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {formData.notificationEmails.map((email) => (
+                    {formData.providerEmails.map((email) => (
                       <Badge
                         key={email}
                         variant="secondary"
                         className="flex items-center gap-1 pr-1"
                       >
-                        <Mail className="h-3 w-3" />
+                        <Building2 className="h-3 w-3" />
                         <span className="text-xs">{email}</span>
                         <button
                           type="button"
@@ -290,9 +289,18 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               <Alert className="bg-purple-50 border-purple-200">
                 <Info className="h-4 w-4 text-purple-600" />
                 <AlertDescription className="text-purple-800 text-xs">
-                  <strong>Who will be notified:</strong> All recipients will receive email alerts for due dates, payment confirmations, and important updates about this bill.
+                  <strong>How it works:</strong> When you forward a bill email from any of these addresses, our system will automatically recognize it, extract the amount and due date, and update this bill with accurate information.
                 </AlertDescription>
               </Alert>
+
+              {formData.providerEmails.length === 0 && (
+                <Alert className="bg-amber-50 border-amber-200">
+                  <Info className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800 text-xs">
+                    <strong>Tip:</strong> Adding provider emails helps us automatically update your bill amounts and due dates. You can find these in the "From" field of your bill emails (e.g., bills@pge.com, noreply@comcast.com).
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             {/* Auto-Pay Settings */}
@@ -385,11 +393,11 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                   <strong>Next Steps:</strong>
                   <ol className="list-decimal list-inside mt-2 space-y-1 text-xs">
                     <li>Save this bill to your account</li>
-                    <li>Forward bill emails from this biller to your unique email address</li>
+                    <li>Forward bill emails from the provider addresses you added</li>
                     <li>We'll automatically extract amounts, due dates{!formData.autoPayEnabled && ', and set up reminders'}</li>
                     <li>{formData.autoPayEnabled ? 'Bills will be paid automatically' : 'Get notified when bills arrive with quick payment options'}</li>
-                    {formData.notificationEmails.length > 0 && (
-                      <li>All {formData.notificationEmails.length} recipient{formData.notificationEmails.length > 1 ? 's' : ''} will receive email notifications</li>
+                    {formData.providerEmails.length > 0 && (
+                      <li>System will recognize emails from: {formData.providerEmails.join(', ')}</li>
                     )}
                   </ol>
                 </AlertDescription>

@@ -12,7 +12,7 @@ export interface Bill {
   status: BillStatus;
   reminderDays: number[];
   reminderEnabled: boolean;
-  notificationEmails: string[];
+  providerEmails: string[]; // Email addresses that send bills from this provider
   paymentHistory: PaymentRecord[];
   autoPayEnabled: boolean;
   autoPayLimit?: number;
