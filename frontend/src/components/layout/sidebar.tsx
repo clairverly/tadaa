@@ -45,46 +45,51 @@ export function Sidebar() {
   }, [location]);
 
   return (
-    <div className="flex h-screen w-64 flex-col bg-gray-900 text-white">
-      <div className="flex h-16 items-center justify-center border-b border-gray-800">
-        <h1 className="text-2xl font-bold text-blue-400">Tadaa</h1>
-      </div>
-      
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors relative',
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.name}
-              {item.showBadge && unreadCount > 0 && (
-                <span className="absolute right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-              {item.badge && (
-                <span className="absolute right-2 bg-purple-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+    <div className="bg-gray-900 text-white shadow-lg">
+      <div className="container mx-auto">
+        <div className="flex items-center justify-between py-4 px-6">
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <h1 className="text-2xl font-bold text-blue-400">Tadaa</h1>
+          </Link>
+          
+          {/* Navigation */}
+          <nav className="flex items-center gap-1">
+            {navigation.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors relative',
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="hidden lg:inline">{item.name}</span>
+                  {item.showBadge && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                  {item.badge && (
+                    <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
 
-      <div className="border-t border-gray-800 p-4">
-        <p className="text-xs text-gray-400 text-center">
-          Effortless accomplishment
-        </p>
+          {/* Tagline */}
+          <div className="hidden xl:block">
+            <p className="text-xs text-gray-400">Effortless accomplishment</p>
+          </div>
+        </div>
       </div>
     </div>
   );

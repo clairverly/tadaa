@@ -6,7 +6,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto p-6">
