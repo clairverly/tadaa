@@ -1,19 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Sparkles } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles, Mic, MicOff, Volume2, VolumeX, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { ChatMessage } from './chat-message';
+import { VoiceSettingsDialog } from './voice-settings-dialog';
 import { generateAIResponse, generateQuickSuggestions, ChatMessage as ChatMessageType, ChatContext } from '@/lib/ai-chat-engine';
 import { billStorage, errandStorage, appointmentStorage } from '@/lib/storage';
+import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
+import { useTextToSpeech } from '@/hooks/use-text-to-speech';
+import { showSuccess, showError } from '@/utils/toast';
 
 export function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [rate, setRate] = useState(1);
+  const [pitch, setPitch] = useState(1);
+  const [volume, setVolume] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -25,6 +35,30 @@ export function AIChatWidget() {
   });
 
   const quickSuggestions = generateQuickSuggestions(getContext());
+
+  // Text-to-speech hook
+  const { speak, cancel: cancelSpeech, isSpeaking, voices } = useTextToSpeech({
+    rate,
+    pitch,
+    volume,
+    voice: selectedVoice,
+  });
+
+  // Speech recognition hook
+  const { isListening, isSupported: isSpeechSupported, toggleListening } = useSpeechRecognition({
+    onResult: (transcript) => {
+      setInputValue(transcript);
+      // Auto-send after voice input
+      setTimeout(() => {
+        if (transcript.trim()) {
+          handleSendMessage(transcript);
+        }
+      }, 500);
+    },
+    onError: (error) => {
+      showError(`Voice input error: ${error}`);
+    },
+  });
 
   // Initial greeting
   useEffect(() => {
@@ -53,14 +87,41 @@ export function AIChatWidget() {
     }
   }, [isOpen]);
 
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
+  // Auto-speak AI responses
+  useEffect(() => {
+    if (autoSpeak && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'assistant' && !isTyping) {
+        // Clean up the message for speech (remove markdown formatting)
+        const cleanText = lastMessage.content
+          .replace(/\*\*/g, '')
+          .replace(/\*/g, '')
+          .replace(/\n/g, '. ')
+          .replace(/•/g, '')
+          .replace(/📋|🛒|📅|💰|⚠️|✨|📊|💵|🔄|⏳/g, '');
+        speak(cleanText);
+      }
+    }
+  }, [messages, autoSpeak, isTyping, speak]);
+
+  // Set default voice
+  useEffect(() => {
+    if (voices.length > 0 && !selectedVoice) {
+      // Try to find an English voice
+      const englishVoice = voices.find(v => v.lang.startsWith('en'));
+      setSelectedVoice(englishVoice || voices[0]);
+    }
+  }, [voices, selectedVoice]);
+
+  const handleSendMessage = (messageText?: string) => {
+    const textToSend = messageText || inputValue;
+    if (!textToSend.trim()) return;
 
     // Add user message
     const userMessage: ChatMessageType = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: inputValue,
+      content: textToSend,
       timestamp: new Date().toISOString(),
     };
 
@@ -68,10 +129,13 @@ export function AIChatWidget() {
     setInputValue('');
     setIsTyping(true);
 
+    // Cancel any ongoing speech
+    cancelSpeech();
+
     // Simulate AI thinking delay
     setTimeout(() => {
       const context = getContext();
-      const aiResponse = generateAIResponse(inputValue, context);
+      const aiResponse = generateAIResponse(textToSend, context);
       setMessages(prev => [...prev, aiResponse]);
       setIsTyping(false);
     }, 500);
@@ -79,7 +143,7 @@ export function AIChatWidget() {
 
   const handleQuickSuggestion = (suggestion: string) => {
     setInputValue(suggestion);
-    handleSendMessage();
+    handleSendMessage(suggestion);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -87,6 +151,13 @@ export function AIChatWidget() {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const toggleMute = () => {
+    if (isSpeaking) {
+      cancelSpeech();
+    }
+    setAutoSpeak(!autoSpeak);
   };
 
   return (
@@ -115,17 +186,44 @@ export function AIChatWidget() {
                 </div>
                 <div>
                   <CardTitle className="text-lg">Tadaa AI Assistant</CardTitle>
-                  <p className="text-xs text-purple-100">Always here to help</p>
+                  <p className="text-xs text-purple-100">
+                    {isListening ? '🎤 Listening...' : 'Always here to help'}
+                  </p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(false)}
-                className="text-white hover:bg-white/20"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {/* Voice settings button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="text-white hover:bg-white/20 h-8 w-8"
+                  title="Voice settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+                
+                {/* Mute/unmute button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleMute}
+                  className="text-white hover:bg-white/20 h-8 w-8"
+                  title={autoSpeak ? 'Mute AI voice' : 'Enable AI voice'}
+                >
+                  {autoSpeak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </Button>
+
+                {/* Close button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsOpen(false)}
+                  className="text-white hover:bg-white/20 h-8 w-8"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
 
@@ -181,21 +279,74 @@ export function AIChatWidget() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me anything..."
+                placeholder={isListening ? "Listening..." : "Ask me anything..."}
                 className="flex-1"
+                disabled={isListening}
               />
+              
+              {/* Voice input button */}
+              {isSpeechSupported && (
+                <Button
+                  onClick={toggleListening}
+                  variant={isListening ? "destructive" : "outline"}
+                  size="icon"
+                  className={isListening ? "animate-pulse" : ""}
+                  title={isListening ? "Stop recording" : "Start voice input"}
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+              )}
+
+              {/* Send button */}
               <Button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim()}
+                onClick={() => handleSendMessage()}
+                disabled={!inputValue.trim() || isListening}
                 className="bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                 size="icon"
               >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
+
+            {/* Voice status indicator */}
+            {isListening && (
+              <div className="mt-2 flex items-center justify-center gap-2 text-xs text-purple-600">
+                <div className="flex gap-1">
+                  <div className="w-1 h-3 bg-purple-600 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-1 h-4 bg-purple-600 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-1 h-3 bg-purple-600 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+                </div>
+                <span className="font-medium">Listening to your voice...</span>
+              </div>
+            )}
+
+            {/* Speaking indicator */}
+            {isSpeaking && (
+              <div className="mt-2 flex items-center justify-center gap-2 text-xs text-blue-600">
+                <Volume2 className="h-3 w-3 animate-pulse" />
+                <span className="font-medium">AI is speaking...</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
+
+      {/* Voice Settings Dialog */}
+      <VoiceSettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        voices={voices}
+        selectedVoice={selectedVoice}
+        onVoiceChange={setSelectedVoice}
+        rate={rate}
+        onRateChange={setRate}
+        pitch={pitch}
+        onPitchChange={setPitch}
+        volume={volume}
+        onVolumeChange={setVolume}
+        autoSpeak={autoSpeak}
+        onAutoSpeakChange={setAutoSpeak}
+      />
     </>
   );
 }
