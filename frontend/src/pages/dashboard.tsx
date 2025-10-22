@@ -7,11 +7,22 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AIInsightsCard } from '@/components/ai-assistant/ai-insights-card';
+import { TadaaSnapshotWidget } from '@/components/dashboard/tadaa-snapshot';
+import { TopPrioritiesWidget } from '@/components/dashboard/top-priorities';
+import { PredictiveSuggestionsWidget } from '@/components/dashboard/predictive-suggestions';
+import { SmartRescheduleWidget } from '@/components/dashboard/smart-reschedule';
 import { billStorage, errandStorage, appointmentStorage, notificationStorage, paymentStorage } from '@/lib/storage';
 import { isOverdue, isUpcoming, formatDate, getDaysUntil } from '@/lib/utils/date';
 import { generateAllAIInsights } from '@/lib/ai-insights';
 import { generateAllNotifications } from '@/lib/notifications';
 import { exportAllBillsToCalendar } from '@/lib/calendar-integration';
+import { 
+  generateTopPriorities, 
+  generatePredictiveSuggestions, 
+  generateTadaaSnapshot,
+  generateRescheduleSuggestions,
+  SmartReschedule
+} from '@/lib/ai-dashboard';
 import { Bill, Errand, Appointment, Notification } from '@/types';
 import { showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +44,10 @@ export default function Dashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [aiInsights, setAiInsights] = useState<any[]>([]);
   const [spendingAnalytics, setSpendingAnalytics] = useState<SpendingAnalytics | null>(null);
+  const [topPriorities, setTopPriorities] = useState<any[]>([]);
+  const [predictiveSuggestions, setPredictiveSuggestions] = useState<any[]>([]);
+  const [tadaaSnapshot, setTadaaSnapshot] = useState<any>(null);
+  const [rescheduleSuggestions, setRescheduleSuggestions] = useState<SmartReschedule[]>([]);
 
   useEffect(() => {
     loadData();
@@ -40,20 +55,36 @@ export default function Dashboard() {
 
   const loadData = () => {
     const allBills = billStorage.getAll();
+    const allErrands = errandStorage.getAll();
+    const allAppointments = appointmentStorage.getAll();
+    
     setBills(allBills);
-    setErrands(errandStorage.getAll());
-    setAppointments(appointmentStorage.getAll());
+    setErrands(allErrands);
+    setAppointments(allAppointments);
     
     // Generate AI insights
     const insights = generateAllAIInsights(allBills);
     setAiInsights(insights);
 
+    // Generate AI dashboard features
+    const priorities = generateTopPriorities(allBills, allErrands, allAppointments);
+    setTopPriorities(priorities);
+
+    const suggestions = generatePredictiveSuggestions(allBills, allErrands, allAppointments);
+    setPredictiveSuggestions(suggestions);
+
+    const snapshot = generateTadaaSnapshot(allBills, allErrands, allAppointments);
+    setTadaaSnapshot(snapshot);
+
+    const reschedules = generateRescheduleSuggestions(allBills, allErrands, allAppointments);
+    setRescheduleSuggestions(reschedules);
+
     // Generate notifications
     const paymentMethods = paymentStorage.getAll();
     const allNotifications = generateAllNotifications(
       allBills,
-      appointmentStorage.getAll(),
-      errandStorage.getAll(),
+      allAppointments,
+      allErrands,
       paymentMethods
     );
     
@@ -137,6 +168,16 @@ export default function Dashboard() {
     }
   };
 
+  const handleReschedule = (suggestion: SmartReschedule) => {
+    // In a real app, this would update the actual item
+    // For now, just remove the suggestion
+    setRescheduleSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+  };
+
+  const handleDismissReschedule = (suggestionId: string) => {
+    setRescheduleSuggestions(prev => prev.filter(s => s.id !== suggestionId));
+  };
+
   const upcomingBills = bills.filter(b => b.status === 'upcoming' && isUpcoming(b.dueDate, 30));
   const overdueBills = bills.filter(b => isOverdue(b.dueDate) && b.status !== 'paid');
   const activeErrands = errands.filter(e => e.status !== 'done');
@@ -214,6 +255,29 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* AI-Powered Widgets Row */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Tadaa Snapshot */}
+        {tadaaSnapshot && <TadaaSnapshotWidget snapshot={tadaaSnapshot} />}
+
+        {/* Top 3 Priorities */}
+        <TopPrioritiesWidget priorities={topPriorities} />
+      </div>
+
+      {/* Smart Reschedule Suggestions */}
+      {rescheduleSuggestions.length > 0 && (
+        <SmartRescheduleWidget
+          suggestions={rescheduleSuggestions}
+          onReschedule={handleReschedule}
+          onDismiss={handleDismissReschedule}
+        />
+      )}
+
+      {/* Predictive Suggestions */}
+      {predictiveSuggestions.length > 0 && (
+        <PredictiveSuggestionsWidget suggestions={predictiveSuggestions} />
+      )}
+
       {/* Urgent Notifications */}
       {urgentNotifications.length > 0 && (
         <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg">
@@ -255,7 +319,7 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-            <Link to="/notifications">
+            <Link to="/settings">
               <Button className="w-full mt-4" variant="outline">
                 View All Notifications ({notifications.length})
               </Button>
