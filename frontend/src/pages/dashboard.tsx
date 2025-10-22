@@ -8,6 +8,7 @@ import { SpendingAnalytics } from '@/components/dashboard/spending-analytics';
 import { OverdueBillsAlert } from '@/components/dashboard/overdue-bills-alert';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { AIInsightsCard } from '@/components/ai-assistant/ai-insights-card';
+import { AIChatWidget } from '@/components/ai-chat/ai-chat-widget';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { isOverdue, isUpcoming } from '@/lib/utils/date';
 import { exportAllBillsToCalendar } from '@/lib/calendar-integration';
@@ -89,6 +90,9 @@ export default function Dashboard() {
         activeErrands={activeErrands}
         upcomingAppointments={upcomingAppointments}
       />
+
+      {/* AI Chat Widget */}
+      <AIChatWidget />
     </div>
   );
 }
