@@ -26,6 +26,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
     type: 'personal' as AppointmentType,
     notes: '',
     recurrence: 'one-time' as BillRecurrence,
+    recurrenceEndDate: '',
     reminderMinutes: '30',
     reminderEnabled: true,
   });
@@ -40,6 +41,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
         type: appointment.type,
         notes: appointment.notes,
         recurrence: appointment.recurrence,
+        recurrenceEndDate: (appointment as any).recurrenceEndDate || '',
         reminderMinutes: appointment.reminderMinutes.toString(),
         reminderEnabled: appointment.reminderEnabled ?? true,
       });
@@ -52,6 +54,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
         type: 'personal',
         notes: '',
         recurrence: 'one-time',
+        recurrenceEndDate: '',
         reminderMinutes: '30',
         reminderEnabled: true,
       });
@@ -64,6 +67,29 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
     if (!formData.title || !formData.date || !formData.time) {
       showError('Please fill in all required fields');
       return;
+    }
+
+    // Validate daily recurrence end date
+    if (formData.recurrence === 'daily' || formData.recurrence === 'daily-weekdays') {
+      if (!formData.recurrenceEndDate) {
+        showError('Please select an end date for daily recurrence');
+        return;
+      }
+      
+      const startDate = new Date(formData.date);
+      const endDate = new Date(formData.recurrenceEndDate);
+      const sixMonthsLater = new Date(startDate);
+      sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+      
+      if (endDate > sixMonthsLater) {
+        showError('Daily recurrence can only be set up to 6 months. AI will prompt you to extend when needed.');
+        return;
+      }
+      
+      if (endDate <= startDate) {
+        showError('End date must be after start date');
+        return;
+      }
     }
 
     const newAppointment: Appointment = {
@@ -79,7 +105,8 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
       reminderEnabled: formData.reminderEnabled,
       createdAt: appointment?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
+      ...((formData.recurrence === 'daily' || formData.recurrence === 'daily-weekdays') && { recurrenceEndDate: formData.recurrenceEndDate }),
+    } as any;
 
     onSave(newAppointment);
     showSuccess(appointment ? 'Appointment updated successfully' : 'Appointment scheduled successfully');
@@ -167,12 +194,45 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, onSave 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="one-time">One-time</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="daily-weekdays">Daily (Weekdays Only)</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="yearly">Yearly</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Daily Recurrence End Date */}
+            {(formData.recurrence === 'daily' || formData.recurrence === 'daily-weekdays') && (
+              <div className="grid gap-2 border border-blue-200 bg-blue-50 p-4 rounded-lg">
+                <Label htmlFor="recurrenceEndDate">End Date for Daily Recurrence *</Label>
+                <Input
+                  id="recurrenceEndDate"
+                  type="date"
+                  value={formData.recurrenceEndDate}
+                  onChange={(e) => setFormData({ ...formData, recurrenceEndDate: e.target.value })}
+                  min={formData.date}
+                  max={(() => {
+                    if (!formData.date) return '';
+                    const startDate = new Date(formData.date);
+                    const maxDate = new Date(startDate);
+                    maxDate.setMonth(maxDate.getMonth() + 6);
+                    return maxDate.toISOString().split('T')[0];
+                  })()}
+                />
+                <p className="text-xs text-blue-700">
+                  {formData.recurrence === 'daily-weekdays'
+                    ? 'Weekday appointments (Monday-Friday) can be scheduled up to 6 months in advance. Our AI assistant will remind you to extend the recurrence when it\'s about to end.'
+                    : 'Daily appointments can be scheduled up to 6 months in advance. Our AI assistant will remind you to extend the recurrence when it\'s about to end.'}
+                </p>
+                {formData.recurrence === 'daily-weekdays' && (
+                  <p className="text-xs font-semibold text-blue-800 mt-2">
+                    Note: This appointment will only occur on weekdays (Monday through Friday). Weekends will be skipped.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Reminder Settings */}
             <div className="border-t pt-4 space-y-4">

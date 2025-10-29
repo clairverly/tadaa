@@ -8,8 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from config import settings
-from database import connect_to_mongo, close_mongo_connection
-from routers import health
+from database import connect_to_mongo, close_mongo_connection, init_db_indexes
+from routers import health, auth, ai, ai_extraction
 
 # Configure logging
 logging.basicConfig(
@@ -27,6 +27,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Tadaa Personal Concierge Backend...")
     await connect_to_mongo()
+    await init_db_indexes()
     logger.info("Application startup complete")
     
     yield
@@ -52,10 +53,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include routers
 app.include_router(health.router)
+app.include_router(auth.router)
+app.include_router(ai.router)
+app.include_router(ai_extraction.router)
 
 # Root endpoint
 @app.get("/")

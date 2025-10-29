@@ -5,8 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Errand, ErrandCategory, ErrandPriority } from '@/types';
 import { showSuccess, showError } from '@/utils/toast';
+import { Bell, Info } from 'lucide-react';
 
 interface ErrandFormDialogProps {
   open: boolean;
@@ -21,6 +24,8 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
     description: '',
     priority: 'normal' as ErrandPriority,
     preferredDate: '',
+    reminderEnabled: true,
+    reminderHours: 24,
   });
 
   useEffect(() => {
@@ -30,6 +35,8 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
         description: errand.description,
         priority: errand.priority,
         preferredDate: errand.preferredDate.split('T')[0],
+        reminderEnabled: errand.reminderEnabled ?? true,
+        reminderHours: errand.reminderHours ?? 24,
       });
     } else {
       setFormData({
@@ -37,6 +44,8 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
         description: '',
         priority: 'normal',
         preferredDate: '',
+        reminderEnabled: true,
+        reminderHours: 24,
       });
     }
   }, [errand, open]);
@@ -44,7 +53,7 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.description || !formData.preferredDate) {
+    if (!formData.description) {
       showError('Please fill in all required fields');
       return;
     }
@@ -55,14 +64,16 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
       description: formData.description,
       priority: formData.priority,
       status: errand?.status || 'pending',
-      preferredDate: new Date(formData.preferredDate).toISOString(),
+      preferredDate: formData.preferredDate ? new Date(formData.preferredDate).toISOString() : '',
       adminNotes: errand?.adminNotes || '',
+      reminderEnabled: formData.reminderEnabled,
+      reminderHours: formData.reminderHours,
       createdAt: errand?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     onSave(newErrand);
-    showSuccess(errand ? 'Errand updated successfully' : 'Errand created successfully');
+    showSuccess(errand ? 'Task updated successfully' : 'Task created successfully');
     onOpenChange(false);
   };
 
@@ -72,15 +83,15 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{errand ? 'Edit Errand' : 'Request New Errand'}</DialogTitle>
+          <DialogTitle>{errand ? 'Edit Task' : 'Request New Task'}</DialogTitle>
           <DialogDescription>
-            {errand ? 'Update errand details' : 'Fill in the details for your errand request'}
+            {errand ? 'Update task details' : 'Fill in the details for your task request'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="type">Errand Type *</Label>
+              <Label htmlFor="type">Task Type *</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value) => setFormData({ ...formData, type: value as ErrandCategory })}
@@ -130,7 +141,7 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="preferredDate">Preferred Completion Date *</Label>
+              <Label htmlFor="preferredDate">Preferred Completion Date</Label>
               <Input
                 id="preferredDate"
                 type="date"
@@ -138,6 +149,64 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
                 onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
                 disabled={!canEdit}
               />
+            </div>
+
+            {/* Reminder Settings */}
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-gray-500" />
+                  <Label htmlFor="reminderEnabled" className="cursor-pointer">Enable Task Reminder</Label>
+                </div>
+                <Switch
+                  id="reminderEnabled"
+                  checked={formData.reminderEnabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, reminderEnabled: checked })}
+                  disabled={!canEdit}
+                />
+              </div>
+
+              {formData.reminderEnabled && (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="reminderHours">Remind me before task date</Label>
+                    <Select
+                      value={formData.reminderHours.toString()}
+                      onValueChange={(value) => setFormData({ ...formData, reminderHours: parseInt(value) })}
+                      disabled={!canEdit}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 hour before</SelectItem>
+                        <SelectItem value="3">3 hours before</SelectItem>
+                        <SelectItem value="6">6 hours before</SelectItem>
+                        <SelectItem value="12">12 hours before</SelectItem>
+                        <SelectItem value="24">1 day before</SelectItem>
+                        <SelectItem value="48">2 days before</SelectItem>
+                        <SelectItem value="72">3 days before</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Bell className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800 text-sm">
+                      You'll receive a reminder {formData.reminderHours >= 24 ? `${formData.reminderHours / 24} day(s)` : `${formData.reminderHours} hour(s)`} before the preferred completion date.
+                    </AlertDescription>
+                  </Alert>
+                </>
+              )}
+
+              {!formData.reminderEnabled && (
+                <Alert className="bg-amber-50 border-amber-200">
+                  <Info className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800 text-sm">
+                    Without reminders, you'll need to manually check your task list. Consider enabling reminders to stay on track.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             {errand && errand.adminNotes && (
@@ -151,7 +220,7 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
 
             {!canEdit && (
               <p className="text-sm text-amber-600">
-                This errand is {errand?.status} and cannot be edited.
+                This task is {errand?.status} and cannot be edited.
               </p>
             )}
           </div>
@@ -162,7 +231,7 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
             </Button>
             {canEdit && (
               <Button type="submit">
-                {errand ? 'Update Errand' : 'Create Errand'}
+                {errand ? 'Update Task' : 'Create Task'}
               </Button>
             )}
           </DialogFooter>

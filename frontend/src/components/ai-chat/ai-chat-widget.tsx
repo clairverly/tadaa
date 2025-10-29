@@ -166,7 +166,7 @@ export function AIChatWidget() {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 z-50 group"
+          className="fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 z-50 group"
           size="icon"
         >
           <MessageCircle className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
@@ -176,7 +176,7 @@ export function AIChatWidget() {
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-[400px] h-[600px] shadow-2xl z-50 flex flex-col border-2 border-purple-200">
+        <Card className="fixed bottom-24 right-6 w-[400px] h-[600px] shadow-2xl z-50 flex flex-col border-2 border-purple-200">
           {/* Header */}
           <CardHeader className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-t-lg pb-4">
             <div className="flex items-center justify-between">

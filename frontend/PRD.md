@@ -18,11 +18,12 @@ source: Deep Mode PRD Generation
 
 **Key Features:**
 - Bill & Task Tracker - with User-Generated Content entity type
-- Errand Request Management - with User-Generated Content entity type
+- Task Request Management (formerly Errands) - with User-Generated Content entity type
 - Appointment Scheduler - with User-Generated Content entity type
 - Shared Dashboard - with System Data entity type
 - Request Urgent Help - with Communication entity type
 - Smart Reminders - with System Data entity type
+- Claude AI Assistant - with AI Integration entity type
 
 **Complexity Assessment:** Simple
 - **State Management:** Local (user's own data with optional sharing)
@@ -90,31 +91,33 @@ source: Deep Mode PRD Generation
   - [ ] Users can mark bills as paid and view payment history or systems will automatically update the payment status
   - [ ] Users can set bills to recur (weekly, monthly, yearly) and system auto-generates next occurrence
 
-**FR-002: Errand Request Management - COMPLETE VERSION**
-- **Description:** Users create errands using predefined structured forms for essential services (home maintenance, cleaning, gardening, groceries, delivery management, pharmacy pickups). Admin manually tracks status through workflow: Pending → In Progress → Done.
+**FR-002: Task Request Management - COMPLETE VERSION**
+- **Description:** Users create tasks using predefined structured forms for essential services (home maintenance, cleaning, gardening, groceries, delivery management, pharmacy pickups) or through conversational AI. Admin manually tracks status through workflow: Pending → In Progress → Done. Preferred completion date is optional.
 - **Entity Type:** User-Generated Content
-- **User Benefit:** Organize and delegate household errands efficiently, track progress, ensure nothing falls through cracks
+- **User Benefit:** Organize and delegate household tasks efficiently, track progress, ensure nothing falls through cracks, create tasks naturally through AI conversation
 - **Primary User:** All personas (creators), Admin (status updater)
 - **Lifecycle Operations:**
-  - **Create:** Users fill structured forms based on errand type (service category, description, priority, preferred date)
-  - **View:** Users see errand details, current status, admin notes, completion history
-  - **Edit:** Users modify errand details before admin marks as "In Progress"
-  - **Delete:** Users cancel errands that are still "Pending"
-  - **List/Search:** Users browse all errands, filter by status/category/priority, search by description
+  - **Create:** Users fill structured forms based on task type (service category, description, priority, optional preferred date) OR create tasks through AI conversation
+  - **View:** Users see task details, current status, admin notes, completion history
+  - **Edit:** Users modify task details before admin marks as "In Progress"
+  - **Delete:** Users cancel tasks that are still "Pending"
+  - **List/Search:** Users browse all tasks, filter by status/category/priority, search by description
   - **Additional:**
     - Status tracking (Pending → In Progress → Done)
     - Priority flagging (Normal/Urgent)
     - Admin notes/updates
     - Completion history
 - **Acceptance Criteria:**
-  - [ ] Given user selects errand type, when they complete the structured form, then errand is created with "Pending" status
-  - [ ] Given errand exists, when user views it, then they see all details, current status, and any admin notes
-  - [ ] Given errand is "Pending", when user edits it, then changes are saved
-  - [ ] Given errand is "Pending", when user deletes it, then system confirms and removes errand
-  - [ ] Users can search errands and filter by status (Pending/In Progress/Done), category, and priority
-  - [ ] Given errand exists, when admin updates status, then user sees updated status in real-time
-  - [ ] Users cannot edit errands marked "In Progress" or "Done"
-  - [ ] Users can view completion history of all errands
+  - [ ] Given user selects task type, when they complete the structured form, then task is created with "Pending" status
+  - [ ] Given user chats with AI, when they provide task details conversationally, then AI creates task with all required fields
+  - [ ] Given task exists, when user views it, then they see all details, current status, and any admin notes
+  - [ ] Given task is "Pending", when user edits it, then changes are saved
+  - [ ] Given task is "Pending", when user deletes it, then system confirms and removes task
+  - [ ] Users can search tasks and filter by status (Pending/In Progress/Done), category, and priority
+  - [ ] Given task exists, when admin updates status, then user sees updated status in real-time
+  - [ ] Users cannot edit tasks marked "In Progress" or "Done"
+  - [ ] Users can view completion history of all tasks
+  - [ ] Preferred completion date is optional; tasks without dates display "Anytime"
 
 **FR-003: Appointment Scheduler - COMPLETE VERSION**
 - **Description:** Users schedule and manage personal, family, or medical appointments with calendar integration. System provides reminders and organized calendar view.
@@ -143,7 +146,7 @@ source: Deep Mode PRD Generation
   - [ ] Users can set appointments to recur and system auto-generates future occurrences
 
 **FR-004: Shared Dashboard - COMPLETE VERSION**
-- **Description:** Centralized view displaying all bills, errands, and appointments in a clean, organized layout. Users see upcoming tasks, overdue items, and recent completions at a glance.
+- **Description:** Centralized view displaying all bills, tasks, and appointments in a clean, organized layout. Users see upcoming tasks, overdue items, and recent completions at a glance.
 - **Entity Type:** System Data (aggregated view)
 - **User Benefit:** Single source of truth for all tasks, quick overview of what needs attention, reduced cognitive load
 - **Primary User:** All personas
@@ -155,10 +158,10 @@ source: Deep Mode PRD Generation
     - Customizable view preferences
     - Quick action buttons (mark paid, update status)
 - **Acceptance Criteria:**
-  - [ ] Given user logs in, when dashboard loads, then they see all upcoming bills, active errands, and scheduled appointments
+  - [ ] Given user logs in, when dashboard loads, then they see all upcoming bills, active tasks, and scheduled appointments
   - [ ] Given items exist, when user views dashboard, then items are organized by urgency and due date
-  - [ ] Dashboard highlights overdue bills and urgent errands prominently
-  - [ ] Users can take quick actions from dashboard (mark bill paid, view errand details, see appointment)
+  - [ ] Dashboard highlights overdue bills and urgent tasks prominently
+  - [ ] Users can take quick actions from dashboard (mark bill paid, view task details, see appointment)
   - [ ] Dashboard updates in real-time when items are added, modified, or completed
   - [ ] Users can customize dashboard view preferences (show/hide categories, sort order)
   - [ ] Users can export dashboard data as PDF or CSV
@@ -207,6 +210,31 @@ source: Deep Mode PRD Generation
   - [ ] Users can snooze reminders for later
   - [ ] Users can view history of all reminders sent
   - [ ] System delivers notifications with 95% reliability
+
+**FR-009: Claude AI Assistant - COMPLETE VERSION**
+- **Description:** Integrated Claude AI assistant that helps users manage tasks through natural conversation. AI guides users through task creation by asking for missing mandatory fields (task type, description, priority) and optional preferred date. Accessible via middle button in navigation menu.
+- **Entity Type:** AI Integration
+- **User Benefit:** Create tasks naturally through conversation, get help with task management, reduce friction in task creation process
+- **Primary User:** All personas
+- **Lifecycle Operations:**
+  - **Interact:** Users chat with AI to create tasks, ask questions, get summaries
+  - **View:** Users see conversation history and AI responses
+  - **Additional:**
+    - Conversational task creation with field validation
+    - Context-aware responses based on user's bills, tasks, and appointments
+    - Voice input and text-to-speech capabilities
+    - Quick suggestions based on user context
+- **Acceptance Criteria:**
+  - [x] Given user opens AI chat, when they request to create a task, then AI guides them through required fields
+  - [x] Given user provides incomplete task information, when AI detects missing fields, then AI asks for the missing information
+  - [x] Given user provides all required fields, when AI creates task, then task appears in task list with correct details
+  - [x] Given user asks about their tasks, when AI responds, then response includes current task information
+  - [x] AI assistant is accessible via middle button in bottom navigation menu
+  - [x] Users can use voice input to interact with AI
+  - [x] AI responses can be read aloud with text-to-speech
+  - [x] AI provides context-aware quick suggestions based on user's data
+  - [x] Preferred completion date is optional; AI accepts "anytime" or no date
+  - [x] AI uses Claude 3.5 Sonnet model for intelligent responses
 
 ### 2.2 Essential Market Features
 
@@ -305,13 +333,50 @@ source: Deep Mode PRD Generation
 4. System displays matching results
 5. User can sort results by due date, amount, or name
 
-**Errand Management Workflow**
+**Task Management Workflow**
 
-**Create Errand:**
-1. User navigates to Errands section
-2. User clicks "Request New Errand"
-3. User selects errand type from predefined categories (Home Maintenance, Cleaning, Gardening, Groceries, Delivery, Pharmacy)
+**Create Task (Form-based):**
+1. User navigates to Tasks section
+2. User clicks "New Task"
+3. User selects task type from predefined categories (Home Maintenance, Cleaning, Gardening, Groceries, Delivery, Pharmacy)
 4. User fills structured form based on selected type
 5. User sets priority (Normal/Urgent)
-6. User adds preferred completion date and notes
-7. User
+6. User optionally adds preferred completion date (or leaves as "Anytime")
+7. User saves task
+8. System creates task with "Pending" status
+
+**Create Task (AI-assisted):**
+1. User clicks AI button in bottom navigation
+2. User says or types "Create a new task" or similar
+3. AI asks "What type of task is this?" and provides options
+4. User responds with task type
+5. AI asks "Please describe what needs to be done"
+6. User provides description
+7. AI asks "Is this urgent or normal priority?"
+8. User responds with priority
+9. AI asks "When would you prefer this to be completed?"
+10. User provides date or says "anytime"
+11. AI creates task and confirms with summary
+12. Task appears in task list with all details
+
+**Edit Task:**
+1. User locates task in list or dashboard
+2. User clicks on task to view details
+3. User clicks "Edit" button (only available for "Pending" tasks)
+4. User modifies information
+5. User saves changes
+6. System confirms update
+
+**Delete Task:**
+1. User locates task to delete (must be "Pending")
+2. User clicks delete option
+3. System asks for confirmation
+4. User confirms deletion
+5. System removes task
+
+**Search/Filter Tasks:**
+1. User navigates to Tasks section
+2. User enters search term or applies filters
+3. User can filter by: Status (Pending/In Progress/Done), Category, Priority
+4. System displays matching results
+5. User

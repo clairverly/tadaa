@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bill, BillCategory, BillRecurrence } from '@/types';
 import { ScannedBillData } from '@/lib/bill-ocr';
 import { showSuccess, showError } from '@/utils/toast';
-import { CreditCard, Info, Scan, Mail, Sparkles, Shield, BellOff, Plus, X, Building2, Lock, Eye, EyeOff, Calendar, RefreshCw } from 'lucide-react';
+import { CreditCard, Info, Scan, Mail, Sparkles, Shield, BellOff, Plus, X, Building2, Lock, Eye, EyeOff, Calendar, RefreshCw, Bell, DollarSign } from 'lucide-react';
 import { paymentStorage, userStorage } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
 
@@ -25,8 +25,11 @@ interface BillFormDialogProps {
 export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, defaultCategory }: BillFormDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
+    amount: '',
+    dueDate: '',
     category: 'utilities' as BillCategory,
     recurrence: 'monthly' as BillRecurrence,
+    reminderEnabled: true,
     autoPayEnabled: false,
     autoPayLimit: '',
     paymentMethodId: '',
@@ -43,8 +46,11 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       // Pre-fill with scanned data
       setFormData({
         name: scannedData.name,
+        amount: scannedData.amount ? scannedData.amount.toString() : '',
+        dueDate: scannedData.dueDate || '',
         category: scannedData.category,
         recurrence: scannedData.recurrence || 'monthly',
+        reminderEnabled: true,
         autoPayEnabled: false,
         autoPayLimit: '',
         paymentMethodId: '',
@@ -55,8 +61,11 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
     } else if (bill) {
       setFormData({
         name: bill.name,
+        amount: bill.amount ? bill.amount.toString() : '',
+        dueDate: bill.dueDate || '',
         category: bill.category,
         recurrence: bill.recurrence,
+        reminderEnabled: bill.reminderEnabled ?? true,
         autoPayEnabled: bill.autoPayEnabled || false,
         autoPayLimit: bill.autoPayLimit ? bill.autoPayLimit.toString() : '',
         paymentMethodId: bill.paymentMethodId || '',
@@ -68,8 +77,11 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       // New bill - use default category if provided
       setFormData({
         name: '',
+        amount: '',
+        dueDate: '',
         category: defaultCategory || 'utilities',
         recurrence: 'monthly',
+        reminderEnabled: true,
         autoPayEnabled: false,
         autoPayLimit: '',
         paymentMethodId: '',
@@ -133,17 +145,20 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
       }
     }
 
-    // For new bills, create with placeholder values that will be updated via email
+    // Parse amount and due date from form
+    const amount = formData.amount ? parseFloat(formData.amount) : 0;
+    const dueDate = formData.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
     const newBill: Bill = {
       id: bill?.id || `bill-${Date.now()}`,
       name: formData.name,
-      amount: bill?.amount || 0, // Placeholder - will be updated via email
-      dueDate: bill?.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Placeholder - 30 days from now
+      amount: amount,
+      dueDate: dueDate,
       category: formData.category,
       recurrence: formData.recurrence,
       status: bill?.status || 'upcoming',
       reminderDays: bill?.reminderDays || [7, 3, 1], // Default reminders
-      reminderEnabled: formData.autoPayEnabled ? false : (bill?.reminderEnabled ?? true), // Disable reminders if auto-pay enabled
+      reminderEnabled: formData.autoPayEnabled ? false : formData.reminderEnabled, // Disable reminders if auto-pay enabled
       providerEmails: formData.providerEmails,
       attachmentPassword: formData.attachmentPassword || undefined,
       autoPayEnabled: formData.autoPayEnabled,
@@ -228,6 +243,59 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               </Select>
               <p className="text-xs text-gray-500">
                 Helps organize your bills by type
+              </p>
+            </div>
+
+            {/* Amount */}
+            <div className="grid gap-2">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-gray-500" />
+                <Label htmlFor="amount">Bill Amount (Optional)</Label>
+              </div>
+              {formData.autoPayEnabled && formData.providerEmails.length > 0 && !formData.amount ? (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900">As Billed</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Amount will be automatically extracted from bill emails and paid accordingly
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    placeholder="e.g., 125.50"
+                    disabled={formData.autoPayEnabled && formData.providerEmails.length > 0 && !bill}
+                  />
+                  <p className="text-xs text-gray-500">
+                    {scannedData
+                      ? 'Amount extracted from scan - you can edit if needed'
+                      : formData.autoPayEnabled && formData.providerEmails.length > 0
+                      ? 'Leave blank for "As Billed" - amount will be extracted from emails'
+                      : 'Enter the bill amount if known, or leave blank to update via email'}
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Due Date */}
+            <div className="grid gap-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <Label htmlFor="dueDate">Due Date (Optional)</Label>
+              </div>
+              <Input
+                id="dueDate"
+                type="date"
+                value={formData.dueDate ? new Date(formData.dueDate).toISOString().split('T')[0] : ''}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+              />
+              <p className="text-xs text-gray-500">
+                {scannedData ? 'Due date extracted from scan - you can edit if needed' : 'Enter the due date if known, or leave blank to update via email'}
               </p>
             </div>
 
@@ -400,6 +468,49 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
               </Alert>
             </div>
 
+            {/* Reminder Settings */}
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-gray-500" />
+                  <Label htmlFor="reminderEnabled" className="cursor-pointer">Enable Payment Reminders</Label>
+                </div>
+                <Switch
+                  id="reminderEnabled"
+                  checked={formData.reminderEnabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, reminderEnabled: checked })}
+                  disabled={formData.autoPayEnabled}
+                />
+              </div>
+
+              {formData.reminderEnabled && !formData.autoPayEnabled && (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <Bell className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800 text-sm">
+                    You'll receive reminders 7, 3, and 1 day(s) before the bill is due. This helps you stay on top of payments and avoid late fees.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!formData.reminderEnabled && !formData.autoPayEnabled && (
+                <Alert className="bg-amber-50 border-amber-200">
+                  <Info className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800 text-sm">
+                    <strong>Note:</strong> Without reminders or auto-pay, you'll need to manually check for bills. Consider enabling one of these options to avoid missing payments.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {formData.autoPayEnabled && (
+                <Alert className="bg-gray-50 border-gray-200">
+                  <BellOff className="h-4 w-4 text-gray-600" />
+                  <AlertDescription className="text-gray-700 text-sm">
+                    Reminders are disabled when auto-pay is enabled. You'll receive payment confirmation notifications instead.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+
             {/* Auto-Pay Settings */}
             <div className="border-t pt-4 space-y-4">
               <div className="flex items-center justify-between">
@@ -410,7 +521,11 @@ export function BillFormDialog({ open, onOpenChange, bill, scannedData, onSave, 
                 <Switch
                   id="autoPayEnabled"
                   checked={formData.autoPayEnabled}
-                  onCheckedChange={(checked) => setFormData({ ...formData, autoPayEnabled: checked })}
+                  onCheckedChange={(checked) => setFormData({
+                    ...formData,
+                    autoPayEnabled: checked,
+                    reminderEnabled: checked ? false : formData.reminderEnabled // Disable reminders when auto-pay is enabled
+                  })}
                 />
               </div>
 

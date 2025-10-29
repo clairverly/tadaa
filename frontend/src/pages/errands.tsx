@@ -105,12 +105,12 @@ export default function Errands() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Errands</h1>
-          <p className="text-gray-500 mt-1">Request and track your household errands</p>
+          <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+          <p className="text-gray-500 mt-1">Request and track your household tasks</p>
         </div>
         <Button onClick={handleAddNew}>
           <Plus className="h-4 w-4 mr-2" />
-          Request Errand
+          New Task
         </Button>
       </div>
 
@@ -185,7 +185,7 @@ export default function Errands() {
               {!searchTerm && categoryFilter === 'all' && priorityFilter === 'all' && statusFilter === 'all' && (
                 <Button onClick={handleAddNew}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Request Your First Errand
+                  New Task
                 </Button>
               )}
             </div>

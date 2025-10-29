@@ -1,5 +1,5 @@
 export type BillStatus = 'upcoming' | 'overdue' | 'paid' | 'payment-failed';
-export type BillRecurrence = 'one-time' | 'weekly' | 'monthly' | 'yearly' | 'as-billed';
+export type BillRecurrence = 'one-time' | 'daily' | 'daily-weekdays' | 'weekly' | 'monthly' | 'yearly' | 'as-billed';
 export type BillCategory = 'utilities' | 'telco-internet' | 'insurance' | 'subscriptions' | 'credit-loans' | 'general';
 
 export interface Bill {
@@ -55,6 +55,8 @@ export interface Errand {
   status: ErrandStatus;
   preferredDate: string;
   adminNotes: string;
+  reminderEnabled: boolean;
+  reminderHours: number;
   groceryList?: GroceryItem[];
   scannedImageUrl?: string;
   totalEstimatedCost?: number;
@@ -184,4 +186,54 @@ export interface GrocerySubscription {
   active: boolean;
   paymentMethodId: string;
   createdAt: string;
+}
+
+// AI Extraction Types
+export type ItemType = 'task' | 'reminder' | 'bill' | 'schedule' | 'payment';
+export type ExtractionStatus = 'extracting' | 'incomplete' | 'complete' | 'saved';
+
+export interface ExtractionResponse {
+  detected: boolean;
+  item_type: ItemType | null;
+  extracted_data: Record<string, any>;
+  missing_fields: string[];
+  status: ExtractionStatus;
+  confidence: number;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface ExtractedItem {
+  id: string;
+  item_type: ItemType | null;
+  status: ExtractionStatus;
+  extracted_data: Record<string, any>;
+  missing_fields: string[];
+  created_at: string;
+  updated_at: string;
+  saved_at?: string;
+}
+
+export interface Conversation {
+  id: string;
+  user_id: string;
+  messages: ChatMessage[];
+  extracted_items: ExtractedItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  conversation_id?: string;
+}
+
+export interface ChatResponse {
+  message: string;
+  conversation_id: string;
+  extraction?: ExtractionResponse;
 }

@@ -1,11 +1,14 @@
 import { format, parseISO, isAfter, isBefore, addDays, differenceInDays } from 'date-fns';
 
 export function formatDate(date: string | Date): string {
+  if (!date || date === '') {
+    return 'Anytime';
+  }
   try {
     const dateObj = typeof date === 'string' ? parseISO(date) : date;
     return format(dateObj, 'MMM dd, yyyy');
   } catch {
-    return 'Invalid date';
+    return 'Anytime';
   }
 }
 

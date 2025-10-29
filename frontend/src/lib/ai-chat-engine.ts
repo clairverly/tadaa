@@ -1,4 +1,4 @@
-import { Bill, Errand, Appointment } from '@/types';
+import { Bill, Errand, Appointment, ErrandCategory, ErrandPriority } from '@/types';
 import { billStorage, errandStorage, appointmentStorage } from './storage';
 import { isOverdue, isUpcoming, formatDate, getDaysUntil } from './utils/date';
 
@@ -23,6 +23,23 @@ export interface ChatContext {
   appointments: Appointment[];
 }
 
+// Task creation state management
+interface TaskCreationState {
+  isCreating: boolean;
+  type?: ErrandCategory;
+  description?: string;
+  priority?: ErrandPriority;
+  preferredDate?: string;
+}
+
+let taskCreationState: TaskCreationState = {
+  isCreating: false,
+};
+
+export function resetTaskCreation() {
+  taskCreationState = { isCreating: false };
+}
+
 // Natural language understanding patterns
 const patterns = {
   // Questions about bills
@@ -40,7 +57,7 @@ const patterns = {
   
   // Actions
   addBill: /add.*bill|create.*bill|new bill/i,
-  addErrand: /add.*errand|create.*errand|new errand|add.*task/i,
+  addErrand: /add.*errand|create.*errand|new errand|add.*task|create.*task|new task/i,
   addAppointment: /add.*appointment|schedule.*appointment|book.*appointment/i,
   markPaid: /mark.*paid|pay.*bill|paid.*bill/i,
   
@@ -312,17 +329,184 @@ Try asking: "What bills are due soon?" or "Add a new bill"`,
     };
   }
 
-  // Add errand
-  if (patterns.addErrand.test(message)) {
+  // Add task/errand - Start conversational flow
+  if (patterns.addErrand.test(message) && !taskCreationState.isCreating) {
+    taskCreationState.isCreating = true;
     return {
       id: `msg-${Date.now()}`,
       role: 'assistant',
-      content: `🛒 Let's create a new errand! What type of task do you need help with?`,
+      content: `✨ I'll help you create a new task! Let's start with the basics.
+
+What type of task is this? Please choose one:
+• Home Maintenance
+• Cleaning
+• Gardening
+• Groceries
+• Delivery
+• Pharmacy`,
       timestamp: new Date().toISOString(),
-      actions: [
-        { id: 'action-1', label: 'Create Errand', type: 'navigate', data: '/errands' },
-      ],
     };
+  }
+
+  // Handle task creation flow
+  if (taskCreationState.isCreating) {
+    // Step 1: Get task type
+    if (!taskCreationState.type) {
+      const typeMap: { [key: string]: ErrandCategory } = {
+        'home maintenance': 'home-maintenance',
+        'home': 'home-maintenance',
+        'maintenance': 'home-maintenance',
+        'cleaning': 'cleaning',
+        'clean': 'cleaning',
+        'gardening': 'gardening',
+        'garden': 'gardening',
+        'groceries': 'groceries',
+        'grocery': 'groceries',
+        'shopping': 'groceries',
+        'delivery': 'delivery',
+        'deliver': 'delivery',
+        'pharmacy': 'pharmacy',
+        'medicine': 'pharmacy',
+        'medication': 'pharmacy',
+      };
+
+      const matchedType = Object.keys(typeMap).find(key =>
+        message.includes(key.toLowerCase())
+      );
+
+      if (matchedType) {
+        taskCreationState.type = typeMap[matchedType];
+        return {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: `Great! I've set the task type to **${taskCreationState.type.replace('-', ' ')}**.
+
+Now, please describe what needs to be done. Be as specific as possible.`,
+          timestamp: new Date().toISOString(),
+        };
+      } else {
+        return {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: `I didn't quite catch that. Please choose one of these task types:
+• Home Maintenance
+• Cleaning
+• Gardening
+• Groceries
+• Delivery
+• Pharmacy`,
+          timestamp: new Date().toISOString(),
+        };
+      }
+    }
+
+    // Step 2: Get description
+    if (!taskCreationState.description) {
+      if (message.length < 5) {
+        return {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: `Please provide a more detailed description of the task. What exactly needs to be done?`,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      taskCreationState.description = userMessage;
+      return {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: `Perfect! I've noted: "${taskCreationState.description}"
+
+Is this task urgent or normal priority? (Type "urgent" or "normal")`,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // Step 3: Get priority
+    if (!taskCreationState.priority) {
+      if (message.includes('urgent')) {
+        taskCreationState.priority = 'urgent';
+      } else if (message.includes('normal')) {
+        taskCreationState.priority = 'normal';
+      } else {
+        return {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: `Please specify if this is "urgent" or "normal" priority.`,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      return {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: `Got it! Priority set to **${taskCreationState.priority}**.
+
+When would you prefer this to be completed? You can provide a date (e.g., "tomorrow", "next Monday", "2024-12-25") or type "anytime" if there's no specific deadline.`,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // Step 4: Get preferred date (optional) and create task
+    if (taskCreationState.priority) {
+      let preferredDate = '';
+      
+      if (!message.includes('anytime') && !message.includes('no date') && !message.includes('skip')) {
+        // Try to parse date from message
+        const today = new Date();
+        if (message.includes('today')) {
+          preferredDate = today.toISOString();
+        } else if (message.includes('tomorrow')) {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          preferredDate = tomorrow.toISOString();
+        } else if (message.match(/\d{4}-\d{2}-\d{2}/)) {
+          const dateMatch = message.match(/\d{4}-\d{2}-\d{2}/);
+          if (dateMatch) {
+            preferredDate = new Date(dateMatch[0]).toISOString();
+          }
+        }
+      }
+
+      // Create the task
+      const newTask: Errand = {
+        id: `errand-${Date.now()}`,
+        type: taskCreationState.type!,
+        description: taskCreationState.description!,
+        priority: taskCreationState.priority!,
+        status: 'pending',
+        preferredDate: preferredDate,
+        adminNotes: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      errandStorage.add(newTask);
+
+      const response: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant' as const,
+        content: `✅ **Task created successfully!**
+
+📋 **Summary:**
+• Type: ${newTask.type.replace('-', ' ')}
+• Description: ${newTask.description}
+• Priority: ${newTask.priority}
+• Preferred Date: ${preferredDate ? formatDate(preferredDate) : 'Anytime'}
+
+Your task has been added and is now pending. You can view it in the Tasks page.`,
+        timestamp: new Date().toISOString(),
+        actions: [
+          { id: 'action-1', label: 'View Tasks', type: 'navigate', data: '/errands' },
+          { id: 'action-2', label: 'Create Another Task', type: 'info' },
+        ],
+      };
+
+      // Reset state
+      resetTaskCreation();
+      
+      return response;
+    }
   }
 
   // Add appointment

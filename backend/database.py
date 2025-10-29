@@ -4,13 +4,14 @@ MongoDB Atlas connection management using Motor (async driver)
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import ConnectionFailure
 import logging
+from typing import Optional
 
 from config import settings
 
 logger = logging.getLogger(__name__)
 
 # Global MongoDB client and database instances
-mongodb_client: AsyncIOMotorClient | None = None
+mongodb_client: Optional[AsyncIOMotorClient] = None
 mongodb_database = None
 
 
@@ -86,3 +87,25 @@ def get_database():
     if mongodb_database is None:
         raise RuntimeError("Database not initialized. Call connect_to_mongo() first.")
     return mongodb_database
+
+
+async def init_db_indexes():
+    """
+    Initialize database indexes for collections
+    """
+    db = get_database()
+    
+    # Create unique index on email field for users collection
+    await db.users.create_index("email", unique=True)
+    logger.info("Database indexes created successfully")
+
+
+def get_users_collection():
+    """
+    Get the users collection
+    
+    Returns:
+        AsyncIOMotorCollection: The users collection
+    """
+    db = get_database()
+    return db.users

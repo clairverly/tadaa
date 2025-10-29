@@ -167,7 +167,11 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
             {/* Current Bill Amount */}
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
               <span className="text-sm text-gray-600">Current Amount</span>
-              <span className="font-bold text-xl text-gray-900">${bill.amount.toFixed(2)}</span>
+              {bill.amount === 0 && bill.autoPayEnabled && bill.providerEmails && bill.providerEmails.length > 0 ? (
+                <span className="font-bold text-lg text-blue-600">As Billed</span>
+              ) : (
+                <span className="font-bold text-xl text-gray-900">${bill.amount.toFixed(2)}</span>
+              )}
             </div>
             
             {/* Due Date */}
@@ -257,7 +261,11 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
                     {bill.autoPayEnabled ? 'Auto-Pay Scheduled' : 'Upcoming Payment'}
                   </span>
                 </div>
-                <span className="font-bold text-blue-600">${bill.amount.toFixed(2)}</span>
+                {bill.amount === 0 && bill.autoPayEnabled && bill.providerEmails && bill.providerEmails.length > 0 ? (
+                  <span className="font-bold text-blue-600">As Billed</span>
+                ) : (
+                  <span className="font-bold text-blue-600">${bill.amount.toFixed(2)}</span>
+                )}
               </div>
             )}
             

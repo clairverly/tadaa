@@ -2,7 +2,8 @@
 Configuration management using Pydantic Settings
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
+from pydantic import field_validator
+from typing import List, Union
 
 
 class Settings(BaseSettings):
@@ -16,13 +17,29 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_EXPIRES_IN: str = "7d"
     
+    # Google OAuth Configuration
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
+    
     # CORS Configuration
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: Union[List[str], str] = "http://localhost:5173,http://localhost:3000"
     
     # Application Configuration
     APP_ENV: str = "development"
     PORT: int = 8000
     LOG_LEVEL: str = "INFO"
+    
+    # Claude AI Configuration
+    ANTHROPIC_API_KEY: str = ""
+    
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        """Parse CORS_ORIGINS from comma-separated string or list"""
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(',')]
+        return v
     
     model_config = SettingsConfigDict(
         env_file=".env",

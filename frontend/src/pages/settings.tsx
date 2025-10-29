@@ -291,12 +291,22 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="firstName">First Name</Label>
                 <Input
-                  id="name"
-                  value={profile.name}
-                  onChange={(e) => handleUpdateProfile('name', e.target.value)}
-                  placeholder="Your name"
+                  id="firstName"
+                  value={profile.firstName}
+                  onChange={(e) => handleUpdateProfile('firstName', e.target.value)}
+                  placeholder="Your first name"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={profile.lastName}
+                  onChange={(e) => handleUpdateProfile('lastName', e.target.value)}
+                  placeholder="Your last name"
                 />
               </div>
 
