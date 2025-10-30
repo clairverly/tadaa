@@ -17,7 +17,7 @@ load_dotenv()
 def get_anthropic_client():
     global anthropic_client
     if anthropic_client is None:
-        api_key = settings.ANTHROPIC_API_KEY
+        api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
             raise HTTPException(
                 status_code=500,
