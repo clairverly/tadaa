@@ -4,15 +4,16 @@ Handles chat interactions with Claude AI for task management
 """
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union, Dict, Any
 import anthropic
 import os
+from dotenv import load_dotenv
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
 # Initialize Anthropic client
 anthropic_client = None
-
+load_dotenv()
 def get_anthropic_client():
     global anthropic_client
     if anthropic_client is None:
@@ -28,7 +29,7 @@ def get_anthropic_client():
 
 class ChatMessage(BaseModel):
     role: str
-    content: str
+    content: Union[str, Dict[str, Any]]
 
 
 class ChatRequest(BaseModel):
@@ -157,12 +158,12 @@ async def chat_with_claude(
             if msg.role in ["user", "assistant"]:
                 claude_messages.append({
                     "role": msg.role,
-                    "content": msg.content
+                    "content": msg.content if isinstance(msg.content, str) else msg.content.get("message", "")
                 })
         
         # Call Claude API
         response = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-sonnet-4-5-20250929",  # Updated to Sonnet 4.5
             max_tokens=1024,
             system=context_info,
             messages=claude_messages

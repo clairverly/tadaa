@@ -37,7 +37,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
             ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' 
             : 'bg-gray-100 text-gray-900 rounded-2xl rounded-tl-sm'
         } px-4 py-3`}>
-          <p className="text-sm whitespace-pre-line leading-relaxed">{message.content}</p>
+          <p className="text-sm whitespace-pre-line leading-relaxed">
+            {typeof message.content === 'string'
+              ? message.content
+              : message.content.message}
+          </p>
           
           {/* Action Buttons */}
           {message.actions && message.actions.length > 0 && (
