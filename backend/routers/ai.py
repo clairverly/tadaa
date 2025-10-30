@@ -6,7 +6,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 import anthropic
-import os
+
+from config import settings
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -16,7 +17,7 @@ anthropic_client = None
 def get_anthropic_client():
     global anthropic_client
     if anthropic_client is None:
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_key = settings.ANTHROPIC_API_KEY
         if not api_key:
             raise HTTPException(
                 status_code=500,
