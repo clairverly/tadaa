@@ -63,7 +63,7 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
       type: formData.type,
       description: formData.description,
       priority: formData.priority,
-      status: errand?.status || 'pending',
+      status: errand?.status || 'upcoming',
       preferredDate: formData.preferredDate ? new Date(formData.preferredDate).toISOString() : '',
       adminNotes: errand?.adminNotes || '',
       reminderEnabled: formData.reminderEnabled,
@@ -77,7 +77,7 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
     onOpenChange(false);
   };
 
-  const canEdit = !errand || errand.status === 'pending';
+  const canEdit = !errand || errand.status !== 'done';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,6 +107,7 @@ export function ErrandFormDialog({ open, onOpenChange, errand, onSave }: ErrandF
                   <SelectItem value="groceries">Groceries</SelectItem>
                   <SelectItem value="delivery">Delivery Management</SelectItem>
                   <SelectItem value="pharmacy">Pharmacy Pickup</SelectItem>
+                  <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
             </div>

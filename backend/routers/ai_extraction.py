@@ -41,12 +41,15 @@ Your primary role is to help users manage their personal life by:
 2. Automatically detecting when users mention tasks, reminders, bills, schedules, or payment details
 3. Extracting relevant information into structured JSON format
 4. Asking for missing required fields in a conversational way
+5. Helping users delete/remove items with proper confirmation
 
 ## Extraction Categories:
 
 ### TASK
-Required fields: type (home-maintenance|cleaning|gardening|groceries|delivery|pharmacy), description, priority (urgent|normal)
+Required fields: type (home-maintenance|cleaning|gardening|groceries|delivery|pharmacy|others), description, priority (urgent|normal)
 Optional fields: preferredDate, notes
+
+**Note:** Use "others" type for tasks that don't fit the specific categories, such as buying gifts, personal shopping, or miscellaneous errands.
 
 ### REMINDER
 Required fields: title, reminderDate, reminderTime
@@ -60,16 +63,45 @@ Optional fields: recurrence (one-time|monthly|yearly), reminderDays, autoPayEnab
 Required fields: title, date, time, location
 Optional fields: type (personal|family|medical), notes, recurrence
 
+**IMPORTANT DATE AND TIME HANDLING:**
+
+**Year Clarification:**
+- When a user provides a date without explicitly stating the year, you MUST clarify which year they mean
+- Ask: "Just to confirm, is this appointment for [month day], [current year] or [next year]?"
+- This is especially important for dates that could be in either the current or next year
+- Only mark date as complete once the year is confirmed
+- Current date context: Use the current date to make intelligent assumptions, but ALWAYS confirm
+
+**Time Clarification:**
+- When a user provides a time without AM/PM (e.g., "3pm", "3:00", "3 o'clock"), you MUST clarify if it's AM or PM
+- Ask: "Just to confirm, is that [time] in the morning (AM) or afternoon/evening (PM)?"
+- Only mark time as complete once AM/PM is confirmed
+- Convert to 24-hour format for storage: "3:00 PM" → "15:00", "9:00 AM" → "09:00"
+- If user says "morning" or "afternoon/evening", infer AM/PM accordingly
+
 ### PAYMENT
 Required fields: type (card|paynow|bank), nickname
 For card: cardBrand, cardLast4, cardExpiryMonth, cardExpiryYear, cardHolderName
 For paynow: payNowMobile
 For bank: bankName, bankAccountLast4, bankAccountHolderName
 
+## DELETION HANDLING:
+
+When a user wants to delete/remove an item (task, reminder, bill, schedule, or payment):
+
+1. **Detect deletion intent**: Look for keywords like "delete", "remove", "cancel", "get rid of"
+2. **Clarify the item**: If the user doesn't specify which item, ask them to clarify
+   - Example: "Which [item type] would you like to delete? Please provide the name or description."
+3. **Confirm before deletion**: ALWAYS confirm with the user before proceeding
+   - Example: "Just to confirm, you want to delete the [item name/description]? This action cannot be undone."
+4. **Wait for explicit confirmation**: Only proceed after user confirms with "yes", "confirm", "delete it", etc.
+5. **Use deletion response format**: When ready to delete, use the deletion response format below
+
 ## Response Format:
 
 You MUST respond with valid JSON in this exact format:
 
+### For Extraction (Creating/Updating Items):
 {
   "message": "Your conversational response to the user",
   "extraction": {
@@ -83,6 +115,23 @@ You MUST respond with valid JSON in this exact format:
     "confidence": 0.0-1.0
   }
 }
+
+### For Deletion:
+{
+  "message": "Your conversational response to the user",
+  "deletion": {
+    "detected": true,
+    "item_type": "task|reminder|bill|schedule|payment",
+    "item_identifier": "name or description of the item to delete",
+    "status": "clarifying|confirming|confirmed",
+    "confidence": 0.0-1.0
+  }
+}
+
+**Deletion Status Values:**
+- "clarifying": Need to clarify which item to delete
+- "confirming": Asking user to confirm deletion
+- "confirmed": User has confirmed, ready to delete
 
 ## Conversation Guidelines:
 
@@ -132,7 +181,82 @@ Response:
   }
 }
 
-Remember: Always respond with valid JSON. Be conversational but structured."""
+User: "I have a doctor's appointment on January 15th at 3"
+Response:
+{
+  "message": "I'll help you schedule that doctor's appointment! Just to confirm, is this for January 15th, 2025? And is the appointment at 3:00 in the morning (AM) or afternoon (PM)?",
+  "extraction": {
+    "detected": true,
+    "item_type": "schedule",
+    "extracted_data": {
+      "title": "Doctor's Appointment"
+    },
+    "missing_fields": ["date", "time", "location"],
+    "status": "incomplete",
+    "confidence": 0.8
+  }
+}
+
+User: "Yes 2025, and it's in the afternoon"
+Response:
+{
+  "message": "Perfect! January 15th, 2025 at 3:00 PM. Where is this appointment located?",
+  "extraction": {
+    "detected": true,
+    "item_type": "schedule",
+    "extracted_data": {
+      "title": "Doctor's Appointment",
+      "date": "2025-01-15",
+      "time": "15:00"
+    },
+    "missing_fields": ["location"],
+    "status": "incomplete",
+    "confidence": 0.9
+  }
+}
+
+## Deletion Examples:
+
+User: "Delete my electricity bill"
+Response:
+{
+  "message": "I found your Electricity Bill. Just to confirm, you want to delete the Electricity Bill that's due on [date] for $[amount]? This action cannot be undone.",
+  "deletion": {
+    "detected": true,
+    "item_type": "bill",
+    "item_identifier": "Electricity Bill",
+    "status": "confirming",
+    "confidence": 0.9
+  }
+}
+
+User: "Yes, delete it"
+Response:
+{
+  "message": "I've deleted your Electricity Bill. It has been removed from your bills list.",
+  "deletion": {
+    "detected": true,
+    "item_type": "bill",
+    "item_identifier": "Electricity Bill",
+    "status": "confirmed",
+    "confidence": 1.0
+  }
+}
+
+User: "Remove my appointment"
+Response:
+{
+  "message": "Which appointment would you like to remove? Please tell me the name or date of the appointment.",
+  "deletion": {
+    "detected": true,
+    "item_type": "schedule",
+    "item_identifier": "",
+    "status": "clarifying",
+    "confidence": 0.7
+  }
+}
+
+Remember: Always respond with valid JSON. Be conversational but structured. ALWAYS confirm before deleting."""
 
 class ChatRequest(BaseModel):
     message: str
@@ -146,10 +270,18 @@ class ExtractionResponse(BaseModel):
     status: ExtractionStatus = ExtractionStatus.EXTRACTING
     confidence: float = 0.0
 
+class DeletionResponse(BaseModel):
+    detected: bool
+    item_type: Optional[ItemType] = None
+    item_identifier: str = ""
+    status: str = "clarifying"  # clarifying, confirming, confirmed
+    confidence: float = 0.0
+
 class ChatResponse(BaseModel):
     message: str
     conversation_id: str
     extraction: Optional[ExtractionResponse] = None
+    deletion: Optional[DeletionResponse] = None
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_extraction(
@@ -205,10 +337,12 @@ async def chat_with_extraction(
             response_json = json.loads(response_text)
             assistant_message = response_json.get("message", response_text)
             extraction_data = response_json.get("extraction")
+            deletion_data = response_json.get("deletion")
         except json.JSONDecodeError:
             # Fallback if not JSON
             assistant_message = response_text
             extraction_data = None
+            deletion_data = None
         
         # Add assistant message
         assistant_msg = Message(role="assistant", content=assistant_message)
@@ -216,6 +350,8 @@ async def chat_with_extraction(
         
         # Handle extraction
         extraction_response = None
+        deletion_response = None
+        
         if extraction_data and extraction_data.get("detected"):
             # Create or update extracted item
             item_id = f"item_{datetime.utcnow().timestamp()}"
@@ -250,6 +386,16 @@ async def chat_with_extraction(
                 confidence=extraction_data.get("confidence", 0.0)
             )
         
+        # Handle deletion
+        if deletion_data and deletion_data.get("detected"):
+            deletion_response = DeletionResponse(
+                detected=True,
+                item_type=deletion_data.get("item_type"),
+                item_identifier=deletion_data.get("item_identifier", ""),
+                status=deletion_data.get("status", "clarifying"),
+                confidence=deletion_data.get("confidence", 0.0)
+            )
+        
         # Save conversation
         conversation.updated_at = datetime.utcnow()
         conversation_dict = conversation.dict()
@@ -267,7 +413,8 @@ async def chat_with_extraction(
         return ChatResponse(
             message=assistant_message,
             conversation_id=conv_id,
-            extraction=extraction_response
+            extraction=extraction_response,
+            deletion=deletion_response
         )
         
     except anthropic.APIError as e:
@@ -395,4 +542,78 @@ async def save_extracted_item(
         raise HTTPException(
             status_code=500,
             detail=f"Error saving item: {str(e)}"
+        )
+
+class DeleteItemRequest(BaseModel):
+    item_type: ItemType
+    item_identifier: str
+
+@router.post("/delete-item")
+async def delete_item(
+    request: DeleteItemRequest
+):
+    """
+    Delete an item (task, reminder, bill, schedule, or payment) from the database
+    This endpoint is called after AI confirms deletion with the user
+    No authentication required for demo purposes
+    """
+    try:
+        db = get_database()
+        
+        collection_map = {
+            "task": "errands",
+            "reminder": "reminders",
+            "bill": "bills",
+            "schedule": "appointments",
+            "payment": "payment_methods"
+        }
+        
+        collection_name = collection_map.get(request.item_type)
+        if not collection_name:
+            raise HTTPException(status_code=400, detail="Invalid item type")
+        
+        # Search for the item by name/description
+        # For anonymous user, we search across all items
+        query = {
+            "user_id": "anonymous",
+            "$or": [
+                {"name": {"$regex": request.item_identifier, "$options": "i"}},
+                {"title": {"$regex": request.item_identifier, "$options": "i"}},
+                {"description": {"$regex": request.item_identifier, "$options": "i"}},
+                {"nickname": {"$regex": request.item_identifier, "$options": "i"}}
+            ]
+        }
+        
+        # Find the item
+        item = await db[collection_name].find_one(query)
+        
+        if not item:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Could not find {request.item_type} matching '{request.item_identifier}'"
+            )
+        
+        # Delete the item
+        result = await db[collection_name].delete_one({"_id": item["_id"]})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to delete item"
+            )
+        
+        return {
+            "success": True,
+            "item_type": request.item_type,
+            "item_id": str(item["_id"]),
+            "collection": collection_name,
+            "message": f"Successfully deleted {request.item_type}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting item: {str(e)}"
         )

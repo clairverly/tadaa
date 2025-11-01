@@ -351,7 +351,7 @@ Try asking: "What bills are due soon?" or "Add a new bill"`,
     }**:\n\n`;
 
     activeErrands.slice(0, 3).forEach((errand) => {
-      const statusEmoji = errand.status === "in-progress" ? "🔄" : "⏳";
+      const statusEmoji = errand.status === "overdue" ? "⚠️" : "⏳";
       const priorityText = errand.priority === "urgent" ? " (URGENT)" : "";
       response += `${statusEmoji} **${errand.type.replace(
         "-",
@@ -615,7 +615,7 @@ When would you prefer this to be completed? You can provide a date (e.g., "tomor
         type: taskCreationState.type!,
         description: taskCreationState.description!,
         priority: taskCreationState.priority!,
-        status: "pending",
+        status: "upcoming",
         preferredDate: preferredDate,
         adminNotes: "",
         reminderEnabled: false,

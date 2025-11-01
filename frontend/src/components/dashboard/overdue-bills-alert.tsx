@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, FileText } from 'lucide-react';
+import { AlertTriangle, FileText, Repeat } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,9 +33,16 @@ export function OverdueBillsAlert({ bills }: OverdueBillsAlertProps) {
                 <div className="p-2 bg-red-100 rounded-lg">
                   <FileText className="h-5 w-5 text-red-600" />
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{bill.name}</p>
-                  <p className="text-sm text-gray-500">Due: {formatDate(bill.dueDate)}</p>
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="font-semibold text-gray-900">{bill.name}</p>
+                    <p className="text-sm text-gray-500">Due: {formatDate(bill.dueDate)}</p>
+                  </div>
+                  {bill.autoPayEnabled && (
+                    <div className="p-1.5 rounded-lg border-2 border-green-500 bg-green-50 flex-shrink-0">
+                      <Repeat className="h-4 w-4 text-green-600" strokeWidth={2.5} />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="text-right">

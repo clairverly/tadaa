@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FileText, ShoppingBag, Calendar, Plus, CheckCircle2 } from 'lucide-react';
+import { FileText, ShoppingBag, Calendar, Plus, CheckCircle2, Repeat } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,9 +39,16 @@ export function QuickActions({ upcomingBills, activeErrands, upcomingAppointment
             <div className="space-y-3">
               {upcomingBills.slice(0, 3).map(bill => (
                 <div key={bill.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-transparent rounded-lg hover:from-blue-100 transition-colors">
-                  <div>
-                    <p className="font-medium text-sm">{bill.name}</p>
-                    <p className="text-xs text-gray-500">{formatDate(bill.dueDate)}</p>
+                  <div className="flex items-center gap-2 flex-1">
+                    <div>
+                      <p className="font-medium text-sm">{bill.name}</p>
+                      <p className="text-xs text-gray-500">{formatDate(bill.dueDate)}</p>
+                    </div>
+                    {bill.autoPayEnabled && (
+                      <div className="p-1 rounded border-2 border-green-500 bg-green-50 flex-shrink-0">
+                        <Repeat className="h-3 w-3 text-green-600" strokeWidth={2.5} />
+                      </div>
+                    )}
                   </div>
                   <p className="font-semibold text-blue-600">${bill.amount.toFixed(2)}</p>
                 </div>

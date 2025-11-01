@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,7 +14,6 @@ import { showSuccess } from '@/utils/toast';
 export default function Errands() {
   const [errands, setErrands] = useState<Errand[]>([]);
   const [filteredErrands, setFilteredErrands] = useState<Errand[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ErrandStatus | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<ErrandCategory | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<ErrandPriority | 'all'>('all');
@@ -28,7 +27,7 @@ export default function Errands() {
 
   useEffect(() => {
     filterErrands();
-  }, [errands, searchTerm, statusFilter, categoryFilter, priorityFilter]);
+  }, [errands, statusFilter, categoryFilter, priorityFilter]);
 
   const loadErrands = () => {
     const allErrands = errandStorage.getAll();
@@ -37,13 +36,6 @@ export default function Errands() {
 
   const filterErrands = () => {
     let filtered = [...errands];
-
-    if (searchTerm) {
-      filtered = filtered.filter(errand =>
-        errand.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        errand.type.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter(errand => errand.status === statusFilter);
@@ -76,8 +68,8 @@ export default function Errands() {
   };
 
   const handleDeleteErrand = (errand: Errand) => {
-    if (errand.status !== 'pending') {
-      showSuccess('Only pending errands can be cancelled');
+    if (errand.status === 'done') {
+      showSuccess('Completed tasks cannot be cancelled');
       return;
     }
     setDeletingErrand(errand);
@@ -92,13 +84,34 @@ export default function Errands() {
     }
   };
 
+  const handleMarkDone = (errand: Errand) => {
+    errandStorage.update(errand.id, { status: 'done' });
+    showSuccess('Task marked as done!');
+    loadErrands();
+  };
+
   const handleAddNew = () => {
     setEditingErrand(null);
     setIsFormOpen(true);
   };
 
-  const pendingErrands = errands.filter(e => e.status === 'pending');
-  const inProgressErrands = errands.filter(e => e.status === 'in-progress');
+  // Calculate actual status based on preferred date
+  const getActualStatus = (errand: Errand) => {
+    if (errand.status === 'done') return 'done';
+    
+    const preferredDate = new Date(errand.preferredDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    preferredDate.setHours(0, 0, 0, 0);
+    
+    if (preferredDate < today) {
+      return 'overdue';
+    }
+    return 'upcoming';
+  };
+
+  const upcomingErrands = errands.filter(e => getActualStatus(e) === 'upcoming');
+  const overdueErrands = errands.filter(e => getActualStatus(e) === 'overdue');
   const doneErrands = errands.filter(e => e.status === 'done');
 
   return (
@@ -115,17 +128,7 @@ export default function Errands() {
       </div>
 
       {/* Filters */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search errands..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
+      <div className="grid gap-4 md:grid-cols-3">
         <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as ErrandCategory | 'all')}>
           <SelectTrigger>
             <SelectValue placeholder="Category" />
@@ -158,8 +161,8 @@ export default function Errands() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in-progress">In Progress</SelectItem>
+            <SelectItem value="upcoming">Upcoming</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
             <SelectItem value="done">Done</SelectItem>
           </SelectContent>
         </Select>
@@ -169,8 +172,8 @@ export default function Errands() {
       <Tabs defaultValue="all" className="w-full">
         <TabsList>
           <TabsTrigger value="all">All ({errands.length})</TabsTrigger>
-          <TabsTrigger value="pending">Pending ({pendingErrands.length})</TabsTrigger>
-          <TabsTrigger value="in-progress">In Progress ({inProgressErrands.length})</TabsTrigger>
+          <TabsTrigger value="upcoming">Upcoming ({upcomingErrands.length})</TabsTrigger>
+          <TabsTrigger value="overdue">Overdue ({overdueErrands.length})</TabsTrigger>
           <TabsTrigger value="done">Done ({doneErrands.length})</TabsTrigger>
         </TabsList>
 
@@ -178,11 +181,11 @@ export default function Errands() {
           {filteredErrands.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 mb-4">
-                {searchTerm || categoryFilter !== 'all' || priorityFilter !== 'all' || statusFilter !== 'all'
+                {categoryFilter !== 'all' || priorityFilter !== 'all' || statusFilter !== 'all'
                   ? 'No errands match your filters'
                   : 'No errands yet. Request your first errand to get started!'}
               </p>
-              {!searchTerm && categoryFilter === 'all' && priorityFilter === 'all' && statusFilter === 'all' && (
+              {categoryFilter === 'all' && priorityFilter === 'all' && statusFilter === 'all' && (
                 <Button onClick={handleAddNew}>
                   <Plus className="h-4 w-4 mr-2" />
                   New Task
@@ -197,44 +200,47 @@ export default function Errands() {
                   errand={errand}
                   onEdit={handleEditErrand}
                   onDelete={handleDeleteErrand}
+                  onMarkDone={handleMarkDone}
                 />
               ))}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="pending" className="mt-6">
-          {pendingErrands.length === 0 ? (
+        <TabsContent value="upcoming" className="mt-6">
+          {upcomingErrands.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">No pending errands</p>
+              <p className="text-gray-500">No upcoming tasks</p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {pendingErrands.map(errand => (
+              {upcomingErrands.map(errand => (
                 <ErrandCard
                   key={errand.id}
                   errand={errand}
                   onEdit={handleEditErrand}
                   onDelete={handleDeleteErrand}
+                  onMarkDone={handleMarkDone}
                 />
               ))}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="in-progress" className="mt-6">
-          {inProgressErrands.length === 0 ? (
+        <TabsContent value="overdue" className="mt-6">
+          {overdueErrands.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">No errands in progress</p>
+              <p className="text-gray-500">No overdue tasks</p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {inProgressErrands.map(errand => (
+              {overdueErrands.map(errand => (
                 <ErrandCard
                   key={errand.id}
                   errand={errand}
                   onEdit={handleEditErrand}
                   onDelete={handleDeleteErrand}
+                  onMarkDone={handleMarkDone}
                 />
               ))}
             </div>
@@ -254,6 +260,7 @@ export default function Errands() {
                   errand={errand}
                   onEdit={handleEditErrand}
                   onDelete={handleDeleteErrand}
+                  onMarkDone={handleMarkDone}
                 />
               ))}
             </div>

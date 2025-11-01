@@ -33,9 +33,9 @@ export interface PaymentRecord {
   failureReason?: string;
 }
 
-export type ErrandStatus = 'pending' | 'in-progress' | 'done';
+export type ErrandStatus = 'upcoming' | 'overdue' | 'done';
 export type ErrandPriority = 'normal' | 'urgent';
-export type ErrandCategory = 'home-maintenance' | 'cleaning' | 'gardening' | 'groceries' | 'delivery' | 'pharmacy';
+export type ErrandCategory = 'home-maintenance' | 'cleaning' | 'gardening' | 'groceries' | 'delivery' | 'pharmacy' | 'others';
 
 export interface GroceryItem {
   id: string;
@@ -113,6 +113,8 @@ export interface TwoFactorAuth {
 export interface UserProfile {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   trustedContacts: TrustedContact[];
   notificationPreferences: {
@@ -191,6 +193,7 @@ export interface GrocerySubscription {
 // AI Extraction Types
 export type ItemType = 'task' | 'reminder' | 'bill' | 'schedule' | 'payment';
 export type ExtractionStatus = 'extracting' | 'incomplete' | 'complete' | 'saved';
+export type DeletionStatus = 'clarifying' | 'confirming' | 'confirmed';
 
 export interface ExtractionResponse {
   detected: boolean;
@@ -198,6 +201,14 @@ export interface ExtractionResponse {
   extracted_data: Record<string, any>;
   missing_fields: string[];
   status: ExtractionStatus;
+  confidence: number;
+}
+
+export interface DeletionResponse {
+  detected: boolean;
+  item_type: ItemType | null;
+  item_identifier: string;
+  status: DeletionStatus;
   confidence: number;
 }
 
@@ -236,4 +247,10 @@ export interface ChatResponse {
   message: string;
   conversation_id: string;
   extraction?: ExtractionResponse;
+  deletion?: DeletionResponse;
+}
+
+export interface DeleteItemRequest {
+  item_type: ItemType;
+  item_identifier: string;
 }

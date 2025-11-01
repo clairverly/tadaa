@@ -3,8 +3,6 @@ import {
   ShoppingBag,
   Calendar,
   FileText,
-  AlertCircle,
-  Settings,
   Sparkles,
   X,
   Send,
@@ -41,15 +39,13 @@ import {
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
-  { name: "Bills", href: "/bills", icon: FileText },
   { name: "Tasks", href: "/errands", icon: ShoppingBag },
   { name: "Schedules", href: "/appointments", icon: Calendar },
-  { name: "Profile", href: "/settings", icon: Settings },
-  { name: "Help", href: "/urgent-help", icon: AlertCircle },
+  { name: "Bills", href: "/bills", icon: FileText },
 ];
 
 interface ExtractionType {
-  item_type: "bill" | "errand" | "task" | "appointment";
+  item_type: "bill" | "errand" | "task" | "appointment" | "schedule";
   extracted_data: ExtractedData;
 }
 
@@ -174,7 +170,10 @@ export function Sidebar() {
     if (autoSpeak && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.role === "assistant" && !isTyping) {
-        const cleanText = lastMessage.content
+        const contentToSpeak = typeof lastMessage.content === "string"
+          ? lastMessage.content
+          : lastMessage.content.message;
+        const cleanText = contentToSpeak
           .replace(/\*\*/g, "")
           .replace(/\*/g, "")
           .replace(/\n/g, ". ")
@@ -216,7 +215,7 @@ export function Sidebar() {
       // Convert messages to Claude API format
       const claudeMessages = [...messages, userMessage].map((msg) => ({
         role: msg.role,
-        content: msg.content,
+        content: typeof msg.content === "string" ? msg.content : msg.content.message,
       }));
 
       // Call Claude API
@@ -292,7 +291,7 @@ export function Sidebar() {
           type: (extracted_data.type as ErrandCategory) || "groceries",
           description: extracted_data.description || "No description",
           priority: (extracted_data.priority as ErrandPriority) || "normal",
-          status: "pending",
+          status: "upcoming",
           preferredDate: "",
           adminNotes: "",
           reminderEnabled: false,
@@ -304,7 +303,7 @@ export function Sidebar() {
         showSuccess(
           `Task "${newErrand.description}" has been added successfully!`
         );
-      } else if (item_type === "appointment") {
+      } else if (item_type === "appointment" || item_type === "schedule") {
         const newAppointment: Appointment = {
           id: `appointment-${Date.now()}`,
           title: extracted_data.title || "Untitled Appointment",
@@ -343,7 +342,7 @@ export function Sidebar() {
       <nav className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-around py-3 relative">
-            {navigation.slice(0, 3).map((item) => {
+            {navigation.slice(0, 2).map((item) => {
               const isActive =
                 location.pathname === item.href ||
                 (item.href === "/settings" &&
@@ -395,7 +394,7 @@ export function Sidebar() {
               <span className="text-xs font-medium text-purple-600">AI</span>
             </button>
 
-            {navigation.slice(3).map((item) => {
+            {navigation.slice(2).map((item) => {
               const isActive =
                 location.pathname === item.href ||
                 (item.href === "/settings" &&

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, X, Minimize2, Maximize2, Loader2, Save, CheckCircle, AlertCircle } from 'lucide-react';
+import { Send, X, Minimize2, Maximize2, Loader2, Save, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,18 +9,23 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   sendMessageWithExtraction,
   saveExtractedItem,
+  deleteItem,
   isExtractionComplete,
+  isDeletionConfirmed,
   getFieldDisplayName,
   getItemTypeDisplayName,
   formatExtractedData,
   getExtractionStatusColor,
-  getExtractionStatusIcon
+  getExtractionStatusIcon,
+  getDeletionStatusColor,
+  getDeletionStatusIcon
 } from '@/lib/ai-extraction';
-import { ChatMessage, ExtractionResponse } from '@/types';
+import { ChatMessage, ExtractionResponse, DeletionResponse } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface Message extends ChatMessage {
   extraction?: ExtractionResponse;
+  deletion?: DeletionResponse;
 }
 
 export function AIChatExtractionWidget() {
@@ -31,7 +36,9 @@ export function AIChatExtractionWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [currentExtraction, setCurrentExtraction] = useState<ExtractionResponse | undefined>();
+  const [currentDeletion, setCurrentDeletion] = useState<DeletionResponse | undefined>();
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -68,7 +75,8 @@ export function AIChatExtractionWidget() {
         role: 'assistant',
         content: response.message,
         timestamp: new Date().toISOString(),
-        extraction: response.extraction
+        extraction: response.extraction,
+        deletion: response.deletion
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -76,6 +84,16 @@ export function AIChatExtractionWidget() {
       // Update current extraction if detected
       if (response.extraction?.detected) {
         setCurrentExtraction(response.extraction);
+      }
+
+      // Update current deletion if detected
+      if (response.deletion?.detected) {
+        setCurrentDeletion(response.deletion);
+        
+        // Auto-delete if confirmed
+        if (isDeletionConfirmed(response.deletion)) {
+          await handleDeleteItem(response.deletion);
+        }
       }
 
     } catch (error: any) {
@@ -145,6 +163,50 @@ export function AIChatExtractionWidget() {
     }
   };
 
+  const handleDeleteItem = async (deletion: DeletionResponse) => {
+    if (!deletion.item_type || !deletion.item_identifier) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const result = await deleteItem(deletion.item_type, deletion.item_identifier);
+      
+      toast({
+        title: 'Deleted!',
+        description: result.message || `${getItemTypeDisplayName(deletion.item_type)} deleted successfully`,
+      });
+
+      // Clear current deletion
+      setCurrentDeletion(undefined);
+
+      // Add a confirmation message
+      const confirmMessage: Message = {
+        role: 'assistant',
+        content: `✅ Done! I've deleted the ${getItemTypeDisplayName(deletion.item_type).toLowerCase()}. Is there anything else I can help you with?`,
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, confirmMessage]);
+
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete item',
+        variant: 'destructive'
+      });
+      
+      // Add error message to chat
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: `I encountered an error while trying to delete: ${error.message}. Please try again or let me know if you need help.`,
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -156,10 +218,10 @@ export function AIChatExtractionWidget() {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+        className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 hover:scale-105 transition-transform"
         size="icon"
       >
-        <span className="text-2xl">🤖</span>
+        <span className="text-3xl">🤖</span>
       </Button>
     );
   }
@@ -193,6 +255,44 @@ export function AIChatExtractionWidget() {
 
       {!isMinimized && (
         <CardContent className="p-0 flex flex-col h-[calc(100%-4rem)]">
+          {/* Deletion Status Panel */}
+          {currentDeletion && currentDeletion.detected && (
+            <div className="p-3 bg-gradient-to-r from-red-50 to-orange-50 border-b">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{getDeletionStatusIcon(currentDeletion.status)}</span>
+                    <span className="font-semibold text-sm">
+                      Delete {getItemTypeDisplayName(currentDeletion.item_type)}
+                    </span>
+                    <Badge variant="outline" className={getDeletionStatusColor(currentDeletion.status)}>
+                      {currentDeletion.status}
+                    </Badge>
+                  </div>
+                  
+                  {currentDeletion.item_identifier && (
+                    <div className="text-xs text-gray-600 mt-2">
+                      <span className="font-medium">Item:</span> {currentDeletion.item_identifier}
+                    </div>
+                  )}
+                  
+                  {currentDeletion.status === 'confirming' && (
+                    <div className="text-xs text-amber-600 mt-2">
+                      ⚠️ Waiting for your confirmation to delete
+                    </div>
+                  )}
+                  
+                  {isDeleting && (
+                    <div className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Deleting...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Extraction Status Panel */}
           {currentExtraction && currentExtraction.detected && (
             <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 border-b">
@@ -284,6 +384,13 @@ export function AIChatExtractionWidget() {
                         <div className="mt-2 pt-2 border-t border-gray-300">
                           <div className="text-xs opacity-75">
                             Detected: {getItemTypeDisplayName(message.extraction.item_type)}
+                          </div>
+                        </div>
+                      )}
+                      {message.deletion?.detected && (
+                        <div className="mt-2 pt-2 border-t border-red-300">
+                          <div className="text-xs opacity-75 text-red-600">
+                            Delete: {getItemTypeDisplayName(message.deletion.item_type)}
                           </div>
                         </div>
                       )}

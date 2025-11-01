@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash2, AlertCircle, Wrench, Sparkles, Leaf, ShoppingCart, Package, Pill } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, AlertCircle, Wrench, Sparkles, Leaf, ShoppingCart, Package, Pill, MoreHorizontal, CheckCircle } from 'lucide-react';
 import { formatDate } from '@/lib/utils/date';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +11,7 @@ interface ErrandCardProps {
   errand: Errand;
   onEdit: (errand: Errand) => void;
   onDelete: (errand: Errand) => void;
+  onMarkDone: (errand: Errand) => void;
 }
 
 const categoryIcons = {
@@ -20,6 +21,7 @@ const categoryIcons = {
   'groceries': ShoppingCart,
   'delivery': Package,
   'pharmacy': Pill,
+  'others': MoreHorizontal,
 };
 
 const categoryGradients = {
@@ -29,21 +31,39 @@ const categoryGradients = {
   'groceries': 'from-purple-500 to-pink-500',
   'delivery': 'from-indigo-500 to-blue-500',
   'pharmacy': 'from-red-500 to-pink-500',
+  'others': 'from-gray-500 to-slate-500',
 };
 
-export function ErrandCard({ errand, onEdit, onDelete }: ErrandCardProps) {
-  const canEdit = errand.status === 'pending';
-  const canDelete = errand.status === 'pending';
+export function ErrandCard({ errand, onEdit, onDelete, onMarkDone }: ErrandCardProps) {
+  const canEdit = errand.status !== 'done';
+  const canDelete = errand.status !== 'done';
   
   const CategoryIcon = categoryIcons[errand.type] || Package;
   const gradientColor = categoryGradients[errand.type] || 'from-gray-500 to-slate-500';
 
+  // Determine actual status based on preferred date
+  const getActualStatus = () => {
+    if (errand.status === 'done') return 'done';
+    
+    const preferredDate = new Date(errand.preferredDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    preferredDate.setHours(0, 0, 0, 0);
+    
+    if (preferredDate < today) {
+      return 'overdue';
+    }
+    return 'upcoming';
+  };
+
+  const actualStatus = getActualStatus();
+
   const getStatusColor = () => {
-    switch (errand.status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'in-progress':
+    switch (actualStatus) {
+      case 'upcoming':
         return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'overdue':
+        return 'bg-red-100 text-red-800 border-red-200';
       case 'done':
         return 'bg-green-100 text-green-800 border-green-200';
       default:
@@ -51,10 +71,24 @@ export function ErrandCard({ errand, onEdit, onDelete }: ErrandCardProps) {
     }
   };
 
+  const getStatusLabel = () => {
+    switch (actualStatus) {
+      case 'upcoming':
+        return 'Upcoming';
+      case 'overdue':
+        return 'Overdue';
+      case 'done':
+        return 'Done';
+      default:
+        return actualStatus;
+    }
+  };
+
   return (
     <Card className={cn(
       'transition-all hover:shadow-lg hover:-translate-y-1 border-0 shadow-md',
-      errand.priority === 'urgent' && errand.status !== 'done' && 'ring-2 ring-orange-200'
+      errand.priority === 'urgent' && actualStatus !== 'done' && 'ring-2 ring-orange-200',
+      actualStatus === 'overdue' && 'ring-2 ring-red-300'
     )}>
       <CardContent className="p-0">
         {/* Gradient Header */}
@@ -72,12 +106,18 @@ export function ErrandCard({ errand, onEdit, onDelete }: ErrandCardProps) {
                 </h3>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge className={getStatusColor()}>
-                    {errand.status.replace('-', ' ')}
+                    {getStatusLabel()}
                   </Badge>
-                  {errand.priority === 'urgent' && (
+                  {errand.priority === 'urgent' && actualStatus !== 'done' && (
                     <Badge variant="destructive" className="flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       Urgent
+                    </Badge>
+                  )}
+                  {actualStatus === 'overdue' && (
+                    <Badge variant="destructive" className="flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Overdue
                     </Badge>
                   )}
                 </div>
@@ -91,6 +131,12 @@ export function ErrandCard({ errand, onEdit, onDelete }: ErrandCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {actualStatus !== 'done' && (
+                  <DropdownMenuItem onClick={() => onMarkDone(errand)} className="text-green-600">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Mark as Done
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => onEdit(errand)}>
                   <Edit className="h-4 w-4 mr-2" />
                   {canEdit ? 'Edit' : 'View Details'}

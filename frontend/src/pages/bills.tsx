@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, FileText, Scan, ArrowLeft, Zap, Wifi, Shield, Play, CreditCard, DollarSign, Mail } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, Search, FileText, Scan, ArrowLeft, Zap, Wifi, Shield, Play, CreditCard, DollarSign, Mail, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -71,6 +72,7 @@ const billCategories = [
 ];
 
 export default function Bills() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [bills, setBills] = useState<Bill[]>([]);
   const [filteredBills, setFilteredBills] = useState<Bill[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -85,6 +87,12 @@ export default function Bills() {
 
   useEffect(() => {
     loadBills();
+    
+    // Check for category parameter in URL
+    const categoryParam = searchParams.get('category');
+    if (categoryParam && ['utilities', 'telco-internet', 'insurance', 'subscriptions', 'credit-loans', 'general'].includes(categoryParam)) {
+      setSelectedCategory(categoryParam as BillCategory);
+    }
   }, []);
 
   useEffect(() => {
@@ -164,12 +172,14 @@ export default function Bills() {
 
   const handleCategorySelect = (categoryId: BillCategory) => {
     setSelectedCategory(categoryId);
+    setSearchParams({ category: categoryId });
   };
 
   const handleBackToCategories = () => {
     setSelectedCategory(null);
     setSearchTerm('');
     setStatusFilter('all');
+    setSearchParams({});
   };
 
   const getCategoryBills = (categoryId: BillCategory) => {
@@ -218,7 +228,9 @@ export default function Bills() {
         <div className="grid grid-cols-2 gap-4">
           {billCategories.map((category) => {
             const CategoryIcon = category.icon;
-            const categoryBillCount = getCategoryBills(category.id as BillCategory).length;
+            const categoryBills = getCategoryBills(category.id as BillCategory);
+            const categoryBillCount = categoryBills.length;
+            const autoPayCount = categoryBills.filter(bill => bill.autoPayEnabled).length;
             
             return (
               <button
@@ -234,7 +246,15 @@ export default function Bills() {
                     <p className="font-semibold text-gray-900 text-base mb-1">{category.name}</p>
                     <p className="text-xs text-gray-500 mb-2">{category.description}</p>
                     {categoryBillCount > 0 && (
-                      <p className="text-xs font-medium text-gray-600">{categoryBillCount} bill{categoryBillCount !== 1 ? 's' : ''}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-xs font-medium text-gray-600">{categoryBillCount} bill{categoryBillCount !== 1 ? 's' : ''}</p>
+                        {autoPayCount > 0 && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 bg-green-50 border border-green-200 rounded-full">
+                            <Repeat className="h-3 w-3 text-green-600" strokeWidth={2.5} />
+                            <span className="text-xs font-medium text-green-700">{autoPayCount}</span>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

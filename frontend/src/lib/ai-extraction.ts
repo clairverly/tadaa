@@ -4,8 +4,11 @@ import {
   ChatResponse,
   Conversation,
   ExtractionResponse,
+  DeletionResponse,
+  DeleteItemRequest,
   ItemType,
-  ExtractionStatus
+  ExtractionStatus,
+  DeletionStatus
 } from '@/types';
 
 /**
@@ -85,11 +88,44 @@ export async function saveExtractedItem(
 }
 
 /**
+ * Delete an item from the database
+ */
+export async function deleteItem(
+  itemType: ItemType,
+  itemIdentifier: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const request: DeleteItemRequest = {
+      item_type: itemType,
+      item_identifier: itemIdentifier
+    };
+
+    const response = await api.post('/api/ai/extract/delete-item', request);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error deleting item:', error);
+    
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+    throw new Error('Failed to delete item');
+  }
+}
+
+/**
  * Helper to determine if extraction is complete
  */
 export function isExtractionComplete(extraction?: ExtractionResponse): boolean {
   if (!extraction || !extraction.detected) return false;
   return extraction.status === 'complete' && extraction.missing_fields.length === 0;
+}
+
+/**
+ * Helper to determine if deletion is confirmed
+ */
+export function isDeletionConfirmed(deletion?: DeletionResponse): boolean {
+  if (!deletion || !deletion.detected) return false;
+  return deletion.status === 'confirmed';
 }
 
 /**
@@ -209,6 +245,32 @@ export function getExtractionStatusIcon(status: ExtractionStatus): string {
     incomplete: '⚠️',
     complete: '✅',
     saved: '💾'
+  };
+  
+  return iconMap[status] || '❓';
+}
+
+/**
+ * Helper to get deletion status color
+ */
+export function getDeletionStatusColor(status: DeletionStatus): string {
+  const colorMap: Record<DeletionStatus, string> = {
+    clarifying: 'text-blue-600',
+    confirming: 'text-yellow-600',
+    confirmed: 'text-red-600'
+  };
+  
+  return colorMap[status] || 'text-gray-600';
+}
+
+/**
+ * Helper to get deletion status icon
+ */
+export function getDeletionStatusIcon(status: DeletionStatus): string {
+  const iconMap: Record<DeletionStatus, string> = {
+    clarifying: '❓',
+    confirming: '⚠️',
+    confirmed: '🗑️'
   };
   
   return iconMap[status] || '❓';

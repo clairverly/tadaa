@@ -38,7 +38,7 @@ import {
 } from "@/types";
 
 interface ExtractionType {
-  item_type: "bill" | "errand" | "task" | "appointment";
+  item_type: "bill" | "errand" | "task" | "appointment" | "schedule";
   extracted_data: ExtractedData;
 }
 
@@ -126,10 +126,15 @@ export function AIChatWidget() {
     }
   }, []);
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      // Use setTimeout to ensure DOM has updated
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 100);
     }
   }, [messages, isTyping]);
 
@@ -199,7 +204,7 @@ export function AIChatWidget() {
           type: (extracted_data.type as ErrandCategory) || "groceries",
           description: extracted_data.description || "No description",
           priority: (extracted_data.priority as ErrandPriority) || "normal",
-          status: "pending",
+          status: "upcoming",
           preferredDate: "",
           adminNotes: "",
           reminderEnabled: false,
@@ -211,7 +216,7 @@ export function AIChatWidget() {
         showSuccess(
           `Task "${newErrand.description}" has been added successfully!`
         );
-      } else if (item_type === "appointment") {
+      } else if (item_type === "appointment" || item_type === "schedule") {
         const newAppointment: Appointment = {
           id: `appointment-${Date.now()}`,
           title: extracted_data.title || "Untitled Appointment",

@@ -255,19 +255,10 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Profile</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2 relative">
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Notifications</span>
-            {unreadNotifications.length > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                {unreadNotifications.length}
-              </Badge>
-            )}
           </TabsTrigger>
           <TabsTrigger value="payments" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -440,59 +431,6 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-        {/* Notifications Tab */}
-        <TabsContent value="notifications" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5" />
-                    All Notifications
-                    {unreadNotifications.length > 0 && (
-                      <Badge className="bg-red-500">
-                        {unreadNotifications.length} unread
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription>Stay updated on bills, appointments, and errands</CardDescription>
-                </div>
-                {notifications.length > 0 && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      notificationStorage.clearAll();
-                      loadData();
-                      showSuccess('All notifications cleared');
-                    }}
-                  >
-                    Clear All
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {notifications.length === 0 ? (
-                <div className="text-center py-12">
-                  <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-2">No notifications</p>
-                  <p className="text-sm text-gray-400">You're all caught up!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {notifications.map(notification => (
-                    <NotificationCard
-                      key={notification.id}
-                      notification={notification}
-                      onMarkAsRead={handleMarkAsRead}
-                      onDelete={handleDeleteNotification}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Payments Tab */}
         <TabsContent value="payments" className="space-y-6 mt-6">

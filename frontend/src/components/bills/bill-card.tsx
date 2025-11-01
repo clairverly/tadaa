@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash2, Zap, Wifi, Shield, Play, CreditCard, DollarSign, Bell, BellOff, History, TrendingUp, AlertCircle, Building2, Lock } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, Zap, Wifi, Shield, Play, CreditCard, DollarSign, Bell, BellOff, History, TrendingUp, AlertCircle, Building2, Lock, Repeat } from 'lucide-react';
 import { formatDate, getDaysUntil, isOverdue, isUpcoming } from '@/lib/utils/date';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
@@ -89,8 +89,15 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
         <div className="p-5">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-3 flex-1">
-              <div className={cn('p-2.5 rounded-lg border', styles.bg, styles.border)}>
-                <CategoryIcon className={cn('h-6 w-6', styles.icon)} strokeWidth={2} />
+              <div className="flex items-center gap-2">
+                <div className={cn('p-2.5 rounded-lg border', styles.bg, styles.border)}>
+                  <CategoryIcon className={cn('h-6 w-6', styles.icon)} strokeWidth={2} />
+                </div>
+                {bill.autoPayEnabled && (
+                  <div className="p-2 rounded-lg border-2 border-green-500 bg-green-50 animate-pulse">
+                    <Repeat className="h-5 w-5 text-green-600" strokeWidth={2.5} />
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-lg mb-1 text-gray-900">{bill.name}</h3>
@@ -167,7 +174,7 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
             {/* Current Bill Amount */}
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
               <span className="text-sm text-gray-600">Current Amount</span>
-              {bill.amount === 0 && bill.autoPayEnabled && bill.providerEmails && bill.providerEmails.length > 0 ? (
+              {bill.amount === 0 && bill.autoPayEnabled ? (
                 <span className="font-bold text-lg text-blue-600">As Billed</span>
               ) : (
                 <span className="font-bold text-xl text-gray-900">${bill.amount.toFixed(2)}</span>
@@ -261,7 +268,7 @@ export function BillCard({ bill, onEdit, onDelete }: BillCardProps) {
                     {bill.autoPayEnabled ? 'Auto-Pay Scheduled' : 'Upcoming Payment'}
                   </span>
                 </div>
-                {bill.amount === 0 && bill.autoPayEnabled && bill.providerEmails && bill.providerEmails.length > 0 ? (
+                {bill.amount === 0 && bill.autoPayEnabled ? (
                   <span className="font-bold text-blue-600">As Billed</span>
                 ) : (
                   <span className="font-bold text-blue-600">${bill.amount.toFixed(2)}</span>
